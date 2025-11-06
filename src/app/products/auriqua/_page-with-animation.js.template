@@ -1,0 +1,92 @@
+// TEMPLATE FILE - Copy this to page.js once images are ready
+// This shows how to integrate the ScrollImageSequence component
+
+import ScrollImageSequence from "@/components/ScrollImageSequence";
+import Link from "next/link";
+
+export const metadata = {
+  title: "Auriqua - Rotoris",
+  description: "Discover Auriqua by Rotoris - Experience the revolution in motion",
+};
+
+export default function Auriqua() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-black">
+      {/* Scroll-Based Image Sequence Animation */}
+      <ScrollImageSequence
+        imagePath="/assets/images/auriqua"
+        totalFrames={300}
+        imagePrefix="frame-"
+        imageExtension="jpg"
+        startFrame={1}
+        zeroPadding={true}
+        paddingLength={4}
+        scrollMultiplier={1}
+        className="w-full"
+      />
+
+      {/* Content Section Below Animation */}
+      <main className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
+        <Link
+          href="/"
+          className="inline-flex items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+        >
+          ← Back to Home
+        </Link>
+
+        <div className="mt-12">
+          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
+            Auriqua
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
+            Experience the future of innovation with Auriqua. Every detail crafted to perfection.
+          </p>
+
+          <div className="mt-12 space-y-8">
+            <section>
+              <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+                Product Overview
+              </h2>
+              <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                Add your detailed product description here. Highlight the key features and benefits of Auriqua.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+                Key Features
+              </h2>
+              <ul className="mt-4 space-y-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                <li>• Premium quality materials</li>
+                <li>• Cutting-edge technology</li>
+                <li>• Sustainable design</li>
+                <li>• Exceptional performance</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+                Specifications
+              </h2>
+              <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
+                Add technical specifications and details here.
+              </p>
+            </section>
+
+            {/* Call to Action */}
+            <section className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button className="flex h-12 items-center justify-center rounded-full bg-zinc-900 px-6 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300">
+                  Get Started
+                </button>
+                <button className="flex h-12 items-center justify-center rounded-full border border-zinc-300 px-6 text-sm font-medium transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900">
+                  Learn More
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
