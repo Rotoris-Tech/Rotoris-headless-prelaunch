@@ -146,7 +146,7 @@ export default function ScrollImageSequence({
     };
   }, [isLoading, totalFrames]);
 
-  // Resize canvas to maintain aspect ratio
+  // Resize canvas to cover viewport (like object-fit: cover)
   useEffect(() => {
     if (isLoading || !canvasRef.current || !imagesRef.current[0]) return;
 
@@ -155,10 +155,34 @@ export default function ScrollImageSequence({
       const img = imagesRef.current[0];
 
       if (img && img.complete) {
+        // Get viewport dimensions
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Get image aspect ratio
+        const imgAspect = img.width / img.height;
+        const viewportAspect = viewportWidth / viewportHeight;
+
+        let renderWidth, renderHeight;
+
+        // Calculate dimensions to cover viewport (like object-fit: cover)
+        if (viewportAspect > imgAspect) {
+          // Viewport is wider - fit to width
+          renderWidth = viewportWidth;
+          renderHeight = viewportWidth / imgAspect;
+        } else {
+          // Viewport is taller - fit to height
+          renderHeight = viewportHeight;
+          renderWidth = viewportHeight * imgAspect;
+        }
+
+        // Set canvas internal resolution to match image
         canvas.width = img.width;
         canvas.height = img.height;
-        canvas.style.width = "100%";
-        canvas.style.height = "auto";
+
+        // Set canvas display size to cover viewport
+        canvas.style.width = `${renderWidth}px`;
+        canvas.style.height = `${renderHeight}px`;
 
         // Redraw current frame
         const ctx = canvas.getContext("2d", { alpha: false });
@@ -221,7 +245,7 @@ export default function ScrollImageSequence({
         ) : (
           <canvas
             ref={canvasRef}
-            className="max-w-full max-h-full h-auto object-contain"
+            className="w-full h-full object-cover"
             style={{
               imageRendering: "high-quality",
               willChange: "contents"
