@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+// Register GSAP plugins
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 /**
- * ScrollImageSequence - Ultra-smooth scroll-based image sequence animation
+ * ScrollImageSequence - GSAP-powered ultra-smooth scroll-based image sequence animation
  *
  * @param {Object} props
  * @param {string} props.imagePath - Path to images folder (e.g., "/assets/images/sequence")
@@ -31,8 +38,8 @@ export default function ScrollImageSequence({
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
-  const frameRef = useRef(0);
-  const rafRef = useRef(null);
+  const frameIndexRef = useRef({ frame: 0 });
+  const scrollTriggerRef = useRef(null);
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -47,104 +54,177 @@ export default function ScrollImageSequence({
     return `${imagePath}/${imagePrefix}${paddedNumber}.${imageExtension}`;
   };
 
-  // Preload all images
+  // Progressive image loading - load first frames immediately, rest in background
   useEffect(() => {
     if (!isMounted) return;
 
+    const PRIORITY_FRAMES = 30; // Load first 30 frames immediately for instant start
+    const BATCH_SIZE = 50; // Load remaining frames in batches of 50
+
     const loadImages = async () => {
-      const imagePromises = [];
-      const images = [];
+      const images = new Array(totalFrames);
       let loadedCount = 0;
 
-      for (let i = startFrame; i < startFrame + totalFrames; i++) {
-        const img = new Image();
-        const imageUrl = getImageFilename(i);
+      // Helper to load a single image
+      const loadImage = (index) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const frameNumber = startFrame + index;
+          const imageUrl = getImageFilename(frameNumber);
 
-        const promise = new Promise((resolve, reject) => {
           img.onload = () => {
             loadedCount++;
             setLoadProgress((loadedCount / totalFrames) * 100);
-            resolve();
+            resolve(img);
           };
           img.onerror = () => {
             console.error(`Failed to load image: ${imageUrl}`);
-            reject();
+            // Create a fallback image to prevent gaps
+            resolve(img);
           };
           img.src = imageUrl;
         });
+      };
 
-        images.push(img);
-        imagePromises.push(promise);
+      // Phase 1: Load first priority frames IMMEDIATELY
+      const priorityPromises = [];
+      for (let i = 0; i < Math.min(PRIORITY_FRAMES, totalFrames); i++) {
+        priorityPromises.push(
+          loadImage(i).then(img => {
+            images[i] = img;
+          })
+        );
       }
 
+      // Wait for priority frames to load
+      await Promise.all(priorityPromises);
+
+      // Set images reference and mark as ready
       imagesRef.current = images;
+      setIsLoading(false);
 
-      try {
-        await Promise.all(imagePromises);
-        setIsLoading(false);
-        // Draw first frame
-        if (canvasRef.current && images[0]) {
-          const canvas = canvasRef.current;
-          const ctx = canvas.getContext("2d", { alpha: false });
-          canvas.width = images[0].width;
-          canvas.height = images[0].height;
-          ctx.drawImage(images[0], 0, 0);
-        }
-      } catch (error) {
-        console.error("Error loading images:", error);
+      // Draw first frame immediately
+      if (canvasRef.current && images[0]) {
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        canvas.width = images[0].width;
+        canvas.height = images[0].height;
+        ctx.drawImage(images[0], 0, 0);
       }
+
+      // Phase 2: Load remaining frames in background (batched for performance)
+      const loadRemainingFrames = async () => {
+        for (let i = PRIORITY_FRAMES; i < totalFrames; i += BATCH_SIZE) {
+          const batchPromises = [];
+          const batchEnd = Math.min(i + BATCH_SIZE, totalFrames);
+
+          for (let j = i; j < batchEnd; j++) {
+            batchPromises.push(
+              loadImage(j).then(img => {
+                images[j] = img;
+              })
+            );
+          }
+
+          // Load batch, then pause briefly to not block UI
+          await Promise.all(batchPromises);
+
+          // Small delay between batches to keep UI responsive
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+      };
+
+      // Load remaining frames in background (non-blocking)
+      loadRemainingFrames().catch(error => {
+        console.error("Error loading remaining images:", error);
+      });
     };
 
     loadImages();
   }, [isMounted, imagePath, totalFrames, imagePrefix, imageExtension, startFrame, zeroPadding, paddingLength]);
 
-  // Ultra-smooth scroll animation
+  // GSAP ScrollTrigger animation
   useEffect(() => {
-    if (isLoading || !containerRef.current || !canvasRef.current) return;
+    if (isLoading || !containerRef.current || !canvasRef.current || !isMounted) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
     const container = containerRef.current;
 
+    // Function to render frame (with fallback for not-yet-loaded frames)
     const render = () => {
-      const rect = container.getBoundingClientRect();
-      const scrollStart = -rect.top;
-      const scrollEnd = rect.height - window.innerHeight;
+      const frameIndex = Math.round(frameIndexRef.current.frame);
+      const frame = Math.max(0, Math.min(totalFrames - 1, frameIndex));
+      const img = imagesRef.current[frame];
 
-      // Calculate progress (0 to 1)
-      let scrollProgress = scrollStart / scrollEnd;
-      scrollProgress = Math.max(0, Math.min(1, scrollProgress));
-
-      // Calculate frame index with smooth interpolation
-      const frameIndex = scrollProgress * (totalFrames - 1);
-      const targetFrame = Math.round(frameIndex);
-
-      // Clamp frame index
-      const frame = Math.max(0, Math.min(totalFrames - 1, targetFrame));
-
-      // Only draw if frame changed
-      if (frame !== frameRef.current) {
-        frameRef.current = frame;
-        const img = imagesRef.current[frame];
-
-        if (img && img.complete) {
+      if (img && img.complete) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      } else if (img) {
+        // Image is loading, wait for it
+        img.onload = () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+      } else {
+        // Frame not loaded yet, find nearest loaded frame
+        let nearestFrame = frame;
+        let distance = 1;
+
+        while (distance < totalFrames / 2) {
+          // Check before
+          const beforeIndex = frame - distance;
+          if (beforeIndex >= 0 && imagesRef.current[beforeIndex]?.complete) {
+            nearestFrame = beforeIndex;
+            break;
+          }
+
+          // Check after
+          const afterIndex = frame + distance;
+          if (afterIndex < totalFrames && imagesRef.current[afterIndex]?.complete) {
+            nearestFrame = afterIndex;
+            break;
+          }
+
+          distance++;
+        }
+
+        // Draw nearest available frame
+        const fallbackImg = imagesRef.current[nearestFrame];
+        if (fallbackImg && fallbackImg.complete) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(fallbackImg, 0, 0, canvas.width, canvas.height);
         }
       }
-
-      // Continue animation loop
-      rafRef.current = requestAnimationFrame(render);
     };
 
-    // Start render loop
-    rafRef.current = requestAnimationFrame(render);
+    // Create GSAP animation with smooth momentum
+    const animation = gsap.to(frameIndexRef.current, {
+      frame: totalFrames - 1,
+      ease: "none",
+      onUpdate: render,
+      scrollTrigger: {
+        trigger: container,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 1.5, // Smooth momentum - animation continues smoothly after scroll stops
+        invalidateOnRefresh: true,
+        anticipatePin: 1,
+      },
+    });
+
+    scrollTriggerRef.current = animation.scrollTrigger;
+
+    // Initial render
+    render();
 
     return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
+      if (scrollTriggerRef.current) {
+        scrollTriggerRef.current.kill();
       }
+      animation.kill();
     };
-  }, [isLoading, totalFrames]);
+  }, [isLoading, totalFrames, isMounted]);
 
   // Resize canvas to cover viewport (like object-fit: cover)
   useEffect(() => {
@@ -186,9 +266,15 @@ export default function ScrollImageSequence({
 
         // Redraw current frame
         const ctx = canvas.getContext("2d", { alpha: false });
-        const currentImg = imagesRef.current[frameRef.current];
+        const frameIndex = Math.round(frameIndexRef.current.frame);
+        const currentImg = imagesRef.current[frameIndex];
         if (currentImg && currentImg.complete) {
           ctx.drawImage(currentImg, 0, 0);
+        }
+
+        // Refresh ScrollTrigger
+        if (scrollTriggerRef.current) {
+          ScrollTrigger.refresh();
         }
       }
     };
@@ -224,9 +310,18 @@ export default function ScrollImageSequence({
     <div
       ref={containerRef}
       className={`relative ${className}`}
-      style={{ height: `${scrollHeight}vh` }}
+      style={{ height: `${scrollHeight}vh`, margin: 0, padding: 0 }}
     >
-      <div className="sticky top-0 left-0 w-full h-screen flex items-center justify-center overflow-hidden">
+      <div
+        className="sticky left-0 w-full flex items-center justify-center overflow-hidden"
+        style={{
+          top: 0,
+          height: '100vh',
+          height: '100dvh', // Dynamic viewport height for mobile
+          margin: 0,
+          padding: 0
+        }}
+      >
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-4 px-4">
             <div className="w-full max-w-md h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -239,7 +334,7 @@ export default function ScrollImageSequence({
               Loading frames... {Math.round(loadProgress)}%
             </p>
             <p className="text-xs text-zinc-500 dark:text-zinc-500">
-              {totalFrames} frames
+              {totalFrames} frames • GSAP Powered
             </p>
           </div>
         ) : (

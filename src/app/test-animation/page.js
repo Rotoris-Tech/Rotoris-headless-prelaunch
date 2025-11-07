@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function TestAnimation() {
   return (
-    <div className="min-h-screen bg-white dark:bg-black">
+    <div className="w-full bg-white dark:bg-black" style={{ margin: 0, padding: 0 }}>
       <ScrollImageSequence
         imagePath="/assets/Image-testing"
         totalFrames={840}
