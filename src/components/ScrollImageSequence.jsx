@@ -45,17 +45,17 @@ export default function ScrollImageSequence({
     setIsMounted(true);
   }, []);
 
-  // Generate image filename with optional zero padding
-  const getImageFilename = (frameNumber) => {
-    const paddedNumber = zeroPadding
-      ? String(frameNumber).padStart(paddingLength, "0")
-      : frameNumber;
-    return `${imagePath}/${imagePrefix}${paddedNumber}.${imageExtension}`;
-  };
-
   // Progressive image loading - load first frames immediately, rest in background
   useEffect(() => {
     if (!isMounted) return;
+
+    // Generate image filename with optional zero padding
+    const getImageFilename = (frameNumber) => {
+      const paddedNumber = zeroPadding
+        ? String(frameNumber).padStart(paddingLength, "0")
+        : frameNumber;
+      return `${imagePath}/${imagePrefix}${paddedNumber}.${imageExtension}`;
+    };
 
     const PRIORITY_FRAMES = 30; // Load first 30 frames immediately for instant start
     const BATCH_SIZE = 50; // Load remaining frames in batches of 50
@@ -281,8 +281,9 @@ export default function ScrollImageSequence({
     };
   }, [isMounted]);
 
-  // Calculate scroll height based on frame count - animation within single viewport
-  const scrollHeight = Math.max(300, totalFrames * 0.5);
+  // Calculate scroll height to control animation speed
+  // More scroll distance = slower animation
+  const scrollHeight = Math.max(300, totalFrames * 0.5); // 420vh for 840 frames
 
   // Prevent rendering until mounted to avoid hydration issues
   if (!isMounted) {
