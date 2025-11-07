@@ -11,6 +11,7 @@ if (typeof window !== "undefined") {
 
 /**
  * ScrollImageSequence - GSAP-powered ultra-smooth scroll-based image sequence animation
+ * All animation happens within a single 100vh viewport
  *
  * @param {Object} props
  * @param {string} props.imagePath - Path to images folder (e.g., "/assets/images/sequence")
@@ -35,8 +36,6 @@ export default function ScrollImageSequence({
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imagesRef = useRef([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
   const frameIndexRef = useRef({ frame: 0 });
   const scrollTriggerRef = useRef(null);
@@ -63,23 +62,17 @@ export default function ScrollImageSequence({
 
     const loadImages = async () => {
       const images = new Array(totalFrames);
-      let loadedCount = 0;
 
       // Helper to load a single image
       const loadImage = (index) => {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           const img = new Image();
           const frameNumber = startFrame + index;
           const imageUrl = getImageFilename(frameNumber);
 
-          img.onload = () => {
-            loadedCount++;
-            setLoadProgress((loadedCount / totalFrames) * 100);
-            resolve(img);
-          };
+          img.onload = () => resolve(img);
           img.onerror = () => {
             console.error(`Failed to load image: ${imageUrl}`);
-            // Create a fallback image to prevent gaps
             resolve(img);
           };
           img.src = imageUrl;
@@ -99,9 +92,8 @@ export default function ScrollImageSequence({
       // Wait for priority frames to load
       await Promise.all(priorityPromises);
 
-      // Set images reference and mark as ready
+      // Set images reference
       imagesRef.current = images;
-      setIsLoading(false);
 
       // Draw first frame immediately
       if (canvasRef.current && images[0]) {
@@ -145,7 +137,7 @@ export default function ScrollImageSequence({
 
   // GSAP ScrollTrigger animation
   useEffect(() => {
-    if (isLoading || !containerRef.current || !canvasRef.current || !isMounted) return;
+    if (!containerRef.current || !canvasRef.current || !isMounted) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -224,11 +216,11 @@ export default function ScrollImageSequence({
       }
       animation.kill();
     };
-  }, [isLoading, totalFrames, isMounted]);
+  }, [totalFrames, isMounted]);
 
   // Resize canvas to cover viewport (like object-fit: cover)
   useEffect(() => {
-    if (isLoading || !canvasRef.current || !imagesRef.current[0]) return;
+    if (!canvasRef.current || !isMounted) return;
 
     const handleResize = () => {
       const canvas = canvasRef.current;
@@ -279,31 +271,22 @@ export default function ScrollImageSequence({
       }
     };
 
-    handleResize();
+    // Wait a bit for images to start loading
+    const timer = setTimeout(handleResize, 100);
     window.addEventListener("resize", handleResize);
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("resize", handleResize);
     };
-  }, [isLoading]);
+  }, [isMounted]);
 
-  // Calculate scroll height based on frame count
+  // Calculate scroll height based on frame count - animation within single viewport
   const scrollHeight = Math.max(300, totalFrames * 0.5);
 
   // Prevent rendering until mounted to avoid hydration issues
   if (!isMounted) {
-    return (
-      <div className={`relative ${className}`} style={{ height: `${scrollHeight}vh` }}>
-        <div className="sticky top-0 left-0 w-full h-screen flex items-center justify-center overflow-hidden">
-          <div className="flex flex-col items-center justify-center gap-4 px-4">
-            <div className="w-full max-w-md h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden" />
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-              Initializing...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -322,31 +305,14 @@ export default function ScrollImageSequence({
           padding: 0
         }}
       >
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center gap-4 px-4">
-            <div className="w-full max-w-md h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-zinc-900 dark:bg-zinc-50 transition-all duration-300 ease-out"
-                style={{ width: `${loadProgress}%` }}
-              />
-            </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-              Loading frames... {Math.round(loadProgress)}%
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-              {totalFrames} frames • GSAP Powered
-            </p>
-          </div>
-        ) : (
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full object-cover"
-            style={{
-              imageRendering: "high-quality",
-              willChange: "contents"
-            }}
-          />
-        )}
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full object-cover"
+          style={{
+            imageRendering: "high-quality",
+            willChange: "contents"
+          }}
+        />
       </div>
     </div>
   );
