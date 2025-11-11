@@ -250,7 +250,7 @@ export default function Home() {
               setCurrentTime(newTime);
               currentStep++;
               reverseStep();
-            }, 25); // ~40fps, good balance of speed and smoothness
+            }, 32); // ~40fps, good balance of speed and smoothness
 
             // Track timeout for cleanup
             reverseTimeoutIds.current.push(timeoutId);
