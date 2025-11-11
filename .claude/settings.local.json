@@ -11,7 +11,8 @@
       "Bash(pkill:*)",
       "Bash(ffprobe:*)",
       "Read(//Users/architdubey/.ssh/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
