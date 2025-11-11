@@ -9,7 +9,9 @@
       "Bash(taskkill:*)",
       "Bash(timeout /t 3)",
       "Bash(pkill:*)",
-      "Bash(ffprobe:*)"
+      "Bash(ffprobe:*)",
+      "Read(//Users/architdubey/.ssh/**)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
