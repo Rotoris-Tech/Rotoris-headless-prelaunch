@@ -7,7 +7,9 @@
       "Bash(test:*)",
       "Bash(npm run dev:*)",
       "Bash(taskkill:*)",
-      "Bash(timeout /t 3)"
+      "Bash(timeout /t 3)",
+      "Bash(pkill:*)",
+      "Bash(ffprobe:*)"
     ],
     "deny": [],
     "ask": []

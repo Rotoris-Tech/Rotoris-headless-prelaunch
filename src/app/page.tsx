@@ -1,157 +1,267 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 
 export default function Home() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentFrame, setCurrentFrame] = useState(31);
-  const [activeScene, setActiveScene] = useState(1);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentScene, setCurrentScene] = useState(1);
   const [prevScene, setPrevScene] = useState(1);
   const [popupScene, setPopupScene] = useState<number | null>(null);
   const [targetSceneId, setTargetSceneId] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
 
-  const frameIndex = useRef({ value: 31 });
   const tween = useRef<gsap.core.Tween | null>(null);
   const isAnimating = useRef(false);
   const scrollLock = useRef(false);
-  const lastDirection = useRef<"forward" | "backward" | null>(null); // 👈 added
+  const lastDirection = useRef<"forward" | "backward" | null>(null);
+  const videoSetup = useRef(false);
+  const currentTimeUpdateHandler = useRef<((e: Event) => void) | null>(null);
+  const reverseAnimationId = useRef<number | null>(null);
+  const reverseTimeoutIds = useRef<NodeJS.Timeout[]>([]);
 
-  const FRAME_RATE = 60;
-  const SCROLL_LOCK_DELAY = 500; // 👈 reduced for better responsiveness
-  gsap.ticker.fps(FRAME_RATE);
+  const SCROLL_LOCK_DELAY = 500; // Longer delay to prevent multiple triggers
+
+  // Video timestamps in seconds (converted from 60 FPS frames)
+  const timestamps = useMemo(() => [0, 3.083, 5.567, 7.867, 10.6, 12.417, 14], []); // Frames: 0, 185, 334, 472, 636, 745, 840
 
   const scenes = [
-    { id: 1, start: 31, end: 208, appearAt: 120, label: "DISCOVER" },
-    { id: 2, start: 208, end: 331, appearAt: 260, label: "SUSTAINABILITY" },
-    { id: 3, start: 331, end: 445, appearAt: 380, label: "TECHNOLOGY" },
-    { id: 4, start: 445, end: 635, appearAt: 520, label: "CRAFTSMANSHIP" },
-    { id: 5, start: 635, end: 775, appearAt: 700, label: "PASSION" },
-    { id: 6, start: 775, end: 839, appearAt: 800, label: "FINALE" },
+    { id: 1, timestamp: 0, label: "DISCOVER" },
+    { id: 2, timestamp: 3.083, label: "SUSTAINABILITY" },
+    { id: 3, timestamp: 5.567, label: "TECHNOLOGY" },
+    { id: 4, timestamp: 7.867, label: "CRAFTSMANSHIP" },
+    { id: 5, timestamp: 10.6, label: "PASSION" },
+    { id: 6, timestamp: 12.417, label: "FINALE" },
+    { id: 7, timestamp: 14, label: "OUTRO" },
   ];
 
-  const totalFrames = 839;
-  const images = useRef<HTMLImageElement[]>([]);
-
-  const getImagePath = (i: number) =>
-    `/assets/Image-testing/cartier testing_${String(i).padStart(5, "0")}.avif`;
-
-  // ---------- load & render ----------
+  // ---------- video setup ----------
   useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
+    const video = videoRef.current;
+    if (!video || videoSetup.current) return;
 
-    for (let i = 1; i <= totalFrames; i++) {
-      const img = new Image();
-      img.src = getImagePath(i);
-      images.current[i] = img;
-    }
+    videoSetup.current = true;
 
-    const render = () => {
-      const frame = Math.round(frameIndex.current.value);
-      const img = images.current[frame];
-      if (!img || !img.complete) return;
+    // Set up video properties
+    video.muted = true;
+    video.playsInline = true;
+    video.pause();
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const cA = canvas.width / canvas.height;
-      const iA = img.width / img.height;
-      let w, h, x, y;
-      if (cA > iA) {
-        w = canvas.width;
-        h = canvas.width / iA;
-        x = 0;
-        y = (canvas.height - h) / 2;
-      } else {
-        h = canvas.height;
-        w = canvas.height * iA;
-        x = (canvas.width - w) / 2;
-        y = 0;
-      }
-      ctx.drawImage(img, x, y, w, h);
-      setCurrentFrame(frame);
+    const handleLoadedMetadata = () => {
+      setCurrentTime(video.currentTime);
     };
 
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      render();
+    const handleError = (e: any) => {
+      console.error("Video error:", e);
     };
 
-    resize();
-    window.addEventListener("resize", resize);
-    gsap.ticker.add(render);
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("timeupdate", handleTimeUpdate);
+    video.addEventListener("error", handleError);
 
     return () => {
-      gsap.ticker.remove(render);
-      window.removeEventListener("resize", resize);
+      if (videoSetup.current) {
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video.removeEventListener("timeupdate", handleTimeUpdate);
+        video.removeEventListener("error", handleError);
+        videoSetup.current = false;
+      }
     };
   }, []);
 
-  // ---------- playScene (with instant reverse unlock) ----------
-  const playScene = (forward: boolean) => {
-    if (isAnimating.current) return;
+  // ---------- playScene (video-based) ----------
+  const playScene = useCallback(
+    (forward: boolean) => {
+      if (isAnimating.current) return;
 
-    // 👇 handle direction flip instantly
-    const newDirection = forward ? "forward" : "backward";
-    if (lastDirection.current && lastDirection.current !== newDirection) {
-      scrollLock.current = false;
-    }
-    lastDirection.current = newDirection;
-
-    if (scrollLock.current) return;
-    isAnimating.current = true;
-    scrollLock.current = true;
-
-    const current = scenes.find((s) => s.id === activeScene)!;
-    const nextScene = scenes.find((s) => s.id === activeScene + 1);
-    const prevSceneObj = scenes.find((s) => s.id === activeScene - 1);
-
-    let to = frameIndex.current.value;
-    let newSceneId = activeScene;
-
-    if (forward) {
-      if (nextScene) {
-        to = nextScene.start;
-        newSceneId = nextScene.id;
-      } else {
-        to = current.end;
+      const newDirection = forward ? "forward" : "backward";
+      if (lastDirection.current && lastDirection.current !== newDirection) {
+        scrollLock.current = false;
       }
-    } else {
-      if (frameIndex.current.value > current.start + 2) {
-        to = current.start;
-      } else if (prevSceneObj) {
-        to = prevSceneObj.end;
-        newSceneId = prevSceneObj.id;
-      } else {
-        to = current.start;
-      }
-    }
+      lastDirection.current = newDirection;
 
-    setPrevScene(activeScene);
-    setTargetSceneId(newSceneId);
+      if (scrollLock.current) return;
 
-    const from = frameIndex.current.value;
-    const framesToTravel = Math.abs(to - from);
-    const SCENE_DURATION = Math.max((framesToTravel / FRAME_RATE) * 1.2, 0.4);
+      isAnimating.current = true;
+      scrollLock.current = true;
 
-    tween.current?.kill();
-    tween.current = gsap.to(frameIndex.current, {
-      value: to,
-      duration: SCENE_DURATION,
-      ease: "power1.inOut",
-      onUpdate: () => setCurrentFrame(Math.round(frameIndex.current.value)),
-      onComplete: () => {
-        frameIndex.current.value = to;
-        setCurrentFrame(to);
-        setActiveScene(newSceneId);
-        setTargetSceneId(null);
+      const video = videoRef.current;
+      if (!video || !video.duration) {
         isAnimating.current = false;
+        scrollLock.current = false;
+        return;
+      }
 
-        // short lock to prevent rapid triggers
-        setTimeout(() => (scrollLock.current = false), SCROLL_LOCK_DELAY);
-      },
-    });
-  };
+      let newSceneId = currentScene;
+      let startTime = timestamps[currentScene - 1];
+      let endTime = timestamps[currentScene - 1];
+
+      if (forward) {
+        if (currentScene < scenes.length) {
+          newSceneId = currentScene + 1;
+          startTime = timestamps[currentScene - 1]; // Current scene timestamp
+          endTime = timestamps[newSceneId - 1]; // Next scene timestamp
+        } else {
+          // Already at last scene, no change
+          isAnimating.current = false;
+          scrollLock.current = false;
+          return;
+        }
+      } else {
+        if (currentScene > 1) {
+          newSceneId = currentScene - 1;
+          startTime = timestamps[currentScene - 1]; // Current scene timestamp
+          endTime = timestamps[newSceneId - 1]; // Previous scene timestamp
+        } else {
+          // Already at first scene, no change
+          isAnimating.current = false;
+          scrollLock.current = false;
+          return;
+        }
+      }
+
+      // Stop any existing animations and cleanup
+      tween.current?.kill();
+      video.pause();
+
+      // Remove any existing timeupdate handler
+      if (currentTimeUpdateHandler.current) {
+        video.removeEventListener(
+          "timeupdate",
+          currentTimeUpdateHandler.current
+        );
+        currentTimeUpdateHandler.current = null;
+      }
+
+      // Cancel any running reverse animation
+      if (reverseAnimationId.current) {
+        cancelAnimationFrame(reverseAnimationId.current);
+        reverseAnimationId.current = null;
+      }
+
+      // Clear all pending reverse timeouts
+      reverseTimeoutIds.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      reverseTimeoutIds.current = [];
+
+      if (forward) {
+        // Set start position precisely
+        video.currentTime = startTime;
+        video.playbackRate = 1.0;
+
+        // Small delay to ensure currentTime is set
+        setTimeout(() => {
+          video.play();
+
+          // Use requestAnimationFrame for more precise monitoring
+          const monitorPlayback = () => {
+            if (video.currentTime >= endTime - 0.02) {
+              // Very small buffer for precise stopping
+              video.pause();
+              video.currentTime = endTime; // Set exact position
+              setCurrentTime(endTime);
+              setCurrentScene(newSceneId);
+              isAnimating.current = false;
+
+              // Consistent delay for forward scroll too
+              setTimeout(() => {
+                scrollLock.current = false;
+              }, SCROLL_LOCK_DELAY);
+              return; // Stop monitoring
+            }
+
+            // Continue monitoring if still playing
+            if (!video.paused) {
+              requestAnimationFrame(monitorPlayback);
+            }
+          };
+
+          // Start monitoring
+          requestAnimationFrame(monitorPlayback);
+        }, 50);
+      } else {
+        // For backward, try using actual reverse playback
+        video.currentTime = startTime;
+
+        // Try setting negative playback rate for true reverse playback
+        try {
+          video.playbackRate = -1;
+          video.play();
+
+          // Monitor reverse playback
+          const onReverseTimeUpdate = () => {
+            if (video.currentTime <= endTime + 0.05) {
+              // Small buffer
+              video.pause();
+              video.playbackRate = 1; // Reset to normal
+              video.currentTime = endTime;
+              setCurrentTime(endTime);
+              setCurrentScene(newSceneId);
+              video.removeEventListener("timeupdate", onReverseTimeUpdate);
+              currentTimeUpdateHandler.current = null;
+              isAnimating.current = false;
+
+              // Consistent delay for native reverse too
+              setTimeout(() => {
+                scrollLock.current = false;
+              }, SCROLL_LOCK_DELAY);
+            }
+          };
+
+          currentTimeUpdateHandler.current = onReverseTimeUpdate;
+          video.addEventListener("timeupdate", onReverseTimeUpdate);
+        } catch (error) {
+          // Fallback: If reverse playback not supported, use slow native playback in reverse direction
+          console.log(
+            "Reverse playback not supported, using slow reverse simulation"
+          );
+
+          // Create a smoother, faster animation with optimal balance
+          video.currentTime = startTime;
+          const segmentDuration = Math.abs(endTime - startTime);
+          const steps = Math.ceil(segmentDuration * 20); // Fewer steps for smoother animation
+          const stepTime = (endTime - startTime) / steps;
+          let currentStep = 0;
+
+          const reverseStep = () => {
+            if (currentStep >= steps) {
+              video.currentTime = endTime;
+              setCurrentTime(endTime);
+              setCurrentScene(newSceneId);
+              // Clear all timeouts when animation completes
+              reverseTimeoutIds.current = [];
+              isAnimating.current = false;
+
+              // Longer delay before allowing next scroll for reverse
+              setTimeout(() => {
+                scrollLock.current = false;
+              }, SCROLL_LOCK_DELAY);
+              return;
+            }
+
+            const newTime = startTime + stepTime * currentStep;
+            video.currentTime = newTime;
+
+            // Balanced timing for smoothness
+            const timeoutId = setTimeout(() => {
+              setCurrentTime(newTime);
+              currentStep++;
+              reverseStep();
+            }, 25); // ~40fps, good balance of speed and smoothness
+
+            // Track timeout for cleanup
+            reverseTimeoutIds.current.push(timeoutId);
+          };
+
+          reverseStep();
+        }
+      }
+    },
+    [currentScene, timestamps, scenes.length]
+  );
 
   // ---------- input ----------
   useEffect(() => {
@@ -182,29 +292,17 @@ export default function Home() {
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
     };
-  }, [popupScene, activeScene]);
+  }, [popupScene, currentScene, playScene]);
 
   // ---------- buttons ----------
   const sceneForUI =
     targetSceneId !== null
       ? scenes.find((s) => s.id === targetSceneId)
-      : scenes.find((s) => s.id === activeScene);
+      : scenes.find((s) => s.id === currentScene);
   const currentSceneData = sceneForUI!;
-  const prevSceneData = scenes.find((s) => s.id === prevScene);
 
-  const shouldShowPrevButton =
-    prevSceneData &&
-    currentFrame <= prevSceneData.end + 1 &&
-    prevSceneData.id !== currentSceneData.id;
-
-  const showButton =
-    (currentSceneData &&
-      currentFrame >= currentSceneData.appearAt &&
-      currentFrame <= currentSceneData.end) ||
-    shouldShowPrevButton;
-
-  const buttonScene = shouldShowPrevButton ? prevSceneData! : currentSceneData!;
-  const buttonEnabled = buttonScene && currentFrame >= buttonScene.appearAt + 5;
+  const showButton = currentSceneData && currentScene > 1; // Show button after first scene
+  const buttonEnabled = showButton;
 
   // ---------- popups ----------
   const popupColors: Record<number, string> = {
@@ -243,29 +341,41 @@ export default function Home() {
   // ---------- UI ----------
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full z-0"
-      />
+      <video
+        ref={videoRef}
+        className="fixed top-0 left-0 w-full h-full object-cover z-0"
+        muted
+        playsInline
+        preload="metadata"
+        controls={false}
+        loop={false}
+        autoPlay={false}
+      >
+        <source
+          src="/assets/video-sequence/homepageVideo.mp4"
+          type="video/mp4"
+        />
+        Your browser does not support the video tag.
+      </video>
 
       <div className="fixed top-4 left-4 bg-black/70 text-white text-sm py-1 px-3 rounded font-mono z-20">
-        Frame {currentFrame} / {totalFrames}
+        Time: {currentTime.toFixed(2)}s
       </div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-center py-3 px-6 font-bold text-lg rounded-b-lg z-20">
-        SCENE {activeScene} / {scenes.length}
+        SCENE {currentScene} / {scenes.length}
       </div>
 
-      {showButton && buttonScene && (
+      {showButton && currentSceneData && (
         <button
           disabled={!buttonEnabled}
-          onClick={() => openPopup(buttonScene.id)}
+          onClick={() => openPopup(currentSceneData.id)}
           className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-30 text-white uppercase tracking-[0.2em] text-sm transition-all ${
             buttonEnabled
               ? "opacity-100 cursor-pointer"
               : "opacity-40 cursor-not-allowed"
           }`}
         >
-          {buttonScene.label}
+          {currentSceneData.label}
           <span className="block mx-auto mt-1 h-[1px] w-8 bg-white/70" />
         </button>
       )}
