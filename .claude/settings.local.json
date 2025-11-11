@@ -8,12 +8,16 @@
       "Bash(npm run dev:*)",
       "Bash(taskkill:*)",
       "Bash(timeout /t 3)",
+<<<<<<< Updated upstream
       "Bash(pkill:*)",
       "Bash(ffprobe:*)",
       "Read(//Users/architdubey/.ssh/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)"
+=======
+      "Bash(git pull:*)"
+>>>>>>> Stashed changes
     ],
     "deny": [],
     "ask": []
