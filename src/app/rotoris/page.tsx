@@ -3,12 +3,10 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 
-export default function Home() {
+export default function Rotoris() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentScene, setCurrentScene] = useState(1);
-  const [prevScene, setPrevScene] = useState(1);
   const [popupScene, setPopupScene] = useState<number | null>(null);
-  const [targetSceneId, setTargetSceneId] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
 
   const tween = useRef<gsap.core.Tween | null>(null);
@@ -22,17 +20,13 @@ export default function Home() {
 
   const SCROLL_LOCK_DELAY = 500; // Longer delay to prevent multiple triggers
 
-  // Video timestamps in seconds (converted from 60 FPS frames)
-  const timestamps = useMemo(() => [0, 3.083, 5.567, 7.867, 10.6, 12.417, 14], []); // Frames: 0, 185, 334, 472, 636, 745, 840
+  // Video timestamps in seconds
+  const timestamps = useMemo(() => [0, 5.83, 17], []);
 
   const scenes = [
     { id: 1, timestamp: 0, label: "DISCOVER" },
-    { id: 2, timestamp: 3.083, label: "SUSTAINABILITY" },
-    { id: 3, timestamp: 5.567, label: "TECHNOLOGY" },
-    { id: 4, timestamp: 7.867, label: "CRAFTSMANSHIP" },
-    { id: 5, timestamp: 10.6, label: "PASSION" },
-    { id: 6, timestamp: 12.417, label: "FINALE" },
-    { id: 7, timestamp: 14, label: "OUTRO" },
+    { id: 2, timestamp: 5.83, label: "SUSTAINABILITY" },
+    { id: 3, timestamp: 17, label: "TECHNOLOGY" },
   ];
 
   // ---------- video setup ----------
@@ -193,7 +187,7 @@ export default function Home() {
 
           // Monitor reverse playback
           const onReverseTimeUpdate = () => {
-            if (video.currentTime <= endTime + 0.05) {
+            if (video.currentTime <= endTime + 0.02) {
               // Small buffer
               video.pause();
               video.playbackRate = 1; // Reset to normal
@@ -250,7 +244,7 @@ export default function Home() {
               setCurrentTime(newTime);
               currentStep++;
               reverseStep();
-            }, 40); // ~40fps, good balance of speed and smoothness
+            }, 32); // ~40fps, good balance of speed and smoothness
 
             // Track timeout for cleanup
             reverseTimeoutIds.current.push(timeoutId);
@@ -295,11 +289,7 @@ export default function Home() {
   }, [popupScene, currentScene, playScene]);
 
   // ---------- buttons ----------
-  const sceneForUI =
-    targetSceneId !== null
-      ? scenes.find((s) => s.id === targetSceneId)
-      : scenes.find((s) => s.id === currentScene);
-  const currentSceneData = sceneForUI!;
+  const currentSceneData = scenes.find((s) => s.id === currentScene);
 
   const showButton = currentSceneData && currentScene > 1; // Show button after first scene
   const buttonEnabled = showButton;
@@ -352,7 +342,7 @@ export default function Home() {
         autoPlay={false}
       >
         <source
-          src="/assets/video-sequence/homepageVideo.mp4"
+          src="/assets/video-sequence/pre.mp4"
           type="video/mp4"
         />
         Your browser does not support the video tag.
@@ -376,7 +366,7 @@ export default function Home() {
           }`}
         >
           {currentSceneData.label}
-          <span className="block mx-auto mt-1 h-[1px] w-8 bg-white/70" />
+          <span className="block mx-auto mt-1 h-px w-8 bg-white/70" />
         </button>
       )}
 
