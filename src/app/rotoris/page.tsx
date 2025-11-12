@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 
-export default function Rotoris() {
+export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentScene, setCurrentScene] = useState(1);
+  const [prevScene, setPrevScene] = useState(1);
   const [popupScene, setPopupScene] = useState<number | null>(null);
+  const [targetSceneId, setTargetSceneId] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [showSceneButton, setShowSceneButton] = useState(false);
 
   const tween = useRef<gsap.core.Tween | null>(null);
   const isAnimating = useRef(false);
@@ -20,13 +23,13 @@ export default function Rotoris() {
 
   const SCROLL_LOCK_DELAY = 500; // Longer delay to prevent multiple triggers
 
-  // Video timestamps in seconds
-  const timestamps = useMemo(() => [0, 5.83, 17], []);
+  // Video timestamps in seconds (converted from 60 FPS frames)
+  const timestamps = useMemo(() => [0, 5.830, 13.20], []); // Frames: 0, 185, 334, 472, 636, 745, 840
 
   const scenes = [
     { id: 1, timestamp: 0, label: "DISCOVER" },
-    { id: 2, timestamp: 5.83, label: "SUSTAINABILITY" },
-    { id: 3, timestamp: 17, label: "TECHNOLOGY" },
+    { id: 2, timestamp: 5.830, label: "SUSTAINABILITY" },
+    { id: 3, timestamp: 13.20, label: "TECHNOLOGY" },
   ];
 
   // ---------- video setup ----------
@@ -82,6 +85,7 @@ export default function Rotoris() {
 
       isAnimating.current = true;
       scrollLock.current = true;
+      setShowSceneButton(false); // Hide button during transition
 
       const video = videoRef.current;
       if (!video || !video.duration) {
@@ -160,6 +164,11 @@ export default function Rotoris() {
               setCurrentScene(newSceneId);
               isAnimating.current = false;
 
+              // Show button when scene is reached (not for scene 1)
+              if (newSceneId > 1) {
+                setShowSceneButton(true);
+              }
+
               // Consistent delay for forward scroll too
               setTimeout(() => {
                 scrollLock.current = false;
@@ -185,69 +194,91 @@ export default function Rotoris() {
           video.playbackRate = -1;
           video.play();
 
-          // Monitor reverse playback
-          const onReverseTimeUpdate = () => {
+          // Monitor reverse playback using requestAnimationFrame (same as forward)
+          const monitorReversePlayback = () => {
             if (video.currentTime <= endTime + 0.02) {
-              // Small buffer
+              // Same buffer as forward for consistency
               video.pause();
               video.playbackRate = 1; // Reset to normal
               video.currentTime = endTime;
               setCurrentTime(endTime);
               setCurrentScene(newSceneId);
-              video.removeEventListener("timeupdate", onReverseTimeUpdate);
-              currentTimeUpdateHandler.current = null;
               isAnimating.current = false;
 
-              // Consistent delay for native reverse too
+              // Show button when scene is reached (not for scene 1)
+              if (newSceneId > 1) {
+                setShowSceneButton(true);
+              }
+
+              // Same delay as forward
               setTimeout(() => {
                 scrollLock.current = false;
               }, SCROLL_LOCK_DELAY);
+              return; // Stop monitoring
+            }
+
+            // Continue monitoring if still playing
+            if (!video.paused) {
+              requestAnimationFrame(monitorReversePlayback);
             }
           };
 
-          currentTimeUpdateHandler.current = onReverseTimeUpdate;
-          video.addEventListener("timeupdate", onReverseTimeUpdate);
+          // Start monitoring with same delay as forward
+          setTimeout(() => {
+            requestAnimationFrame(monitorReversePlayback);
+          }, 50);
         } catch (error) {
-          // Fallback: If reverse playback not supported, use slow native playback in reverse direction
+          // Fallback: If reverse playback not supported, use requestAnimationFrame
           console.log(
-            "Reverse playback not supported, using slow reverse simulation"
+            "Reverse playback not supported, using smooth reverse simulation"
           );
 
-          // Create a smoother, faster animation with optimal balance
           video.currentTime = startTime;
           const segmentDuration = Math.abs(endTime - startTime);
-          const steps = Math.ceil(segmentDuration * 20); // Fewer steps for smoother animation
-          const stepTime = (endTime - startTime) / steps;
-          let currentStep = 0;
+
+          // Calculate frame rate to match video's native frame rate
+          const targetFPS = 75; // 75 FPS for smoother animation
+          const frameDuration = 1000 / targetFPS; // ~13.33ms per frame
+          const totalFrames = Math.ceil(segmentDuration * targetFPS);
+          const timePerFrame = (endTime - startTime) / totalFrames;
+
+          let frameCount = 0;
+          let lastFrameTime = performance.now();
 
           const reverseStep = () => {
-            if (currentStep >= steps) {
-              video.currentTime = endTime;
-              setCurrentTime(endTime);
-              setCurrentScene(newSceneId);
-              // Clear all timeouts when animation completes
-              reverseTimeoutIds.current = [];
-              isAnimating.current = false;
+            const now = performance.now();
+            const elapsed = now - lastFrameTime;
 
-              // Longer delay before allowing next scroll for reverse
-              setTimeout(() => {
-                scrollLock.current = false;
-              }, SCROLL_LOCK_DELAY);
-              return;
+            // Only update if enough time has passed (maintain FPS)
+            if (elapsed >= frameDuration) {
+              frameCount++;
+              lastFrameTime = now;
+
+              if (frameCount >= totalFrames) {
+                video.currentTime = endTime;
+                setCurrentTime(endTime);
+                setCurrentScene(newSceneId);
+                isAnimating.current = false;
+
+                // Show button when scene is reached (not for scene 1)
+                if (newSceneId > 1) {
+                  setShowSceneButton(true);
+                }
+
+                // Same delay as forward
+                setTimeout(() => {
+                  scrollLock.current = false;
+                }, SCROLL_LOCK_DELAY);
+                return;
+              }
+
+              const newTime = startTime + timePerFrame * frameCount;
+              video.currentTime = newTime;
+              setCurrentTime(newTime);
             }
 
-            const newTime = startTime + stepTime * currentStep;
-            video.currentTime = newTime;
-
-            // Balanced timing for smoothness
-            const timeoutId = setTimeout(() => {
-              setCurrentTime(newTime);
-              currentStep++;
-              reverseStep();
-            }, 32); // ~40fps, good balance of speed and smoothness
-
-            // Track timeout for cleanup
-            reverseTimeoutIds.current.push(timeoutId);
+            // Use requestAnimationFrame for smooth animation (same as forward)
+            reverseAnimationId.current = requestAnimationFrame(reverseStep);
           };
 
           reverseStep();
@@ -289,9 +320,13 @@ export default function Rotoris() {
   }, [popupScene, currentScene, playScene]);
 
   // ---------- buttons ----------
-  const currentSceneData = scenes.find((s) => s.id === currentScene);
+  const sceneForUI =
+    targetSceneId !== null
+      ? scenes.find((s) => s.id === targetSceneId)
+      : scenes.find((s) => s.id === currentScene);
+  const currentSceneData = sceneForUI!;
 
-  const showButton = currentSceneData && currentScene > 1; // Show button after first scene
+  const showButton = currentSceneData && currentScene > 1 && showSceneButton; // Show button after first scene and when animation complete
   const buttonEnabled = showButton;
 
   // ---------- popups ----------
@@ -366,7 +401,7 @@ export default function Rotoris() {
           }`}
         >
           {currentSceneData.label}
-          <span className="block mx-auto mt-1 h-px w-8 bg-white/70" />
+          <span className="block mx-auto mt-1 h-[1px] w-8 bg-white/70" />
         </button>
       )}
 
