@@ -65,7 +65,28 @@ export default function Monarch() {
       video.muted = true;
       video.playsInline = true;
       video.loop = true;
-      video.play().catch((err) => console.log("Video autoplay failed:", err));
+      video.setAttribute('crossorigin', 'anonymous');
+
+      // Add event listeners for debugging
+      video.addEventListener('loadeddata', () => {
+        console.log('Video loaded successfully');
+      });
+
+      video.addEventListener('error', (e) => {
+        console.error('Video error:', e);
+        console.error('Video error code:', video.error?.code);
+        console.error('Video error message:', video.error?.message);
+      });
+
+      // Try to load and play
+      video.load();
+      video.play().catch((err) => {
+        console.error("Video autoplay failed:", err);
+        // Try playing again after user interaction
+        document.addEventListener('click', () => {
+          video.play().catch(e => console.error('Retry play failed:', e));
+        }, { once: true });
+      });
     }
 
     // Smooth scroll handler
@@ -86,9 +107,11 @@ export default function Monarch() {
       ctx.fillRect(0, 0, w, h);
 
       // Section 1: Video Section (0 - 1000px)
-      if (scroll < 1200 && video && video.readyState >= 2) {
-        // Draw video at full opacity (no fade)
-        ctx.globalAlpha = 1;
+      if (scroll < 1200) {
+        // Check if video is ready to play
+        if (video && video.readyState >= 2) {
+          // Draw video at full opacity (no fade)
+          ctx.globalAlpha = 1;
 
         // Calculate video dimensions to cover canvas
         const videoAspect = video.videoWidth / video.videoHeight;
@@ -180,6 +203,7 @@ export default function Monarch() {
         ctx.letterSpacing = "0.2em";
         ctx.textAlign = "center";
         ctx.fillText("BEGIN THE JOURNEY", w / 2, bottomTextY);
+        }
       }
 
       ctx.globalAlpha = 1;
@@ -211,8 +235,10 @@ export default function Monarch() {
         loop
         playsInline
         autoPlay
+        crossOrigin="anonymous"
+        preload="auto"
       >
-        <source src="/assets/products/Auriqua.mov" type="video/mp4" />
+        <source src="/assets/products/Auriqua.mp4" type="video/mp4" />
       </video>
 
       {/* Hidden ROTORIS logo for canvas rendering */}
