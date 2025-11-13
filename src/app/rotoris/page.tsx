@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
+import { sceneProductMap } from "../data/products";
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -330,15 +331,6 @@ export default function Home() {
   const buttonEnabled = showButton;
 
   // ---------- popups ----------
-  const popupColors: Record<number, string> = {
-    1: "#FFF8F0",
-    2: "#E9F7EF",
-    3: "#EAF2FF",
-    4: "#FFF7E1",
-    5: "#FFECEC",
-    6: "#F0E8FF",
-  };
-
   const openPopup = (id: number) => {
     if (popupScene) return;
     setPopupScene(id);
@@ -346,8 +338,9 @@ export default function Home() {
 
   useEffect(() => {
     if (popupScene) {
+      // Slide up from bottom animation
       gsap.fromTo(
-        ".popup",
+        ".popup-fullscreen",
         { y: "100%" },
         { y: "0%", duration: 0.6, ease: "power3.out" }
       );
@@ -355,7 +348,8 @@ export default function Home() {
   }, [popupScene]);
 
   const closePopup = () => {
-    gsap.to(".popup", {
+    // Slide down to bottom animation
+    gsap.to(".popup-fullscreen", {
       y: "100%",
       duration: 0.5,
       ease: "power3.in",
@@ -405,104 +399,43 @@ export default function Home() {
         </button>
       )}
 
-      {popupScene && (
-        <div
-          className="popup fixed inset-0 text-black z-50 overflow-y-auto"
-          style={{ background: popupColors[popupScene] }}
-        >
-          <button
-            onClick={closePopup}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full border border-black/40 flex items-center justify-center text-lg hover:bg-black/10 cursor-pointer"
-          >
-            ✕
-          </button>
+      {popupScene && (() => {
+        const productId = sceneProductMap[popupScene];
+        const productUrl = productId ? `/products/${productId}` : null;
 
-          <div className="p-8 space-y-6">
-            {popupScene === 1 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">✨ Discover Scene</h2>
-                <p className="text-lg text-black/80">
-                  Hero reveal and cinematic introduction.
+        return (
+          <div className="popup-fullscreen fixed inset-0 z-50 bg-black">
+            {/* Close Button */}
+            <button
+              onClick={closePopup}
+              className="fixed top-4 right-4 md:top-6 md:right-6 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/90 hover:bg-white flex items-center justify-center text-xl md:text-2xl font-light shadow-lg hover:shadow-xl transition-colors cursor-pointer z-[100]"
+              aria-label="Close popup"
+            >
+              <span className="inline-block hover:rotate-90 transition-transform duration-300">
+                ✕
+              </span>
+            </button>
+
+            {/* Full-screen Iframe */}
+            {productUrl ? (
+              <iframe
+                src={productUrl}
+                className="w-full h-full"
+                title="Product Details"
+                style={{
+                  border: "none",
+                }}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-lg text-white/80">
+                  Product information not available
                 </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Introduction</p>
-                  <p>• Brand story</p>
-                  <p>• Ambient mood build-up</p>
-                </section>
-              </>
-            )}
-            {popupScene === 2 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">
-                  🌿 Sustainability Scene
-                </h2>
-                <p className="text-lg text-black/80">
-                  Focus on eco-materials, responsible production and innovation.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Material sourcing</p>
-                  <p>• Recycling process</p>
-                  <p>• Green partnerships</p>
-                </section>
-              </>
-            )}
-            {popupScene === 3 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">⚙️ Technology Scene</h2>
-                <p className="text-lg text-black/80">
-                  Macro transitions highlighting technical precision.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Engineering excellence</p>
-                  <p>• 3D modeling visuals</p>
-                  <p>• Motion-capture integration</p>
-                </section>
-              </>
-            )}
-            {popupScene === 4 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">
-                  🏆 Craftsmanship Scene
-                </h2>
-                <p className="text-lg text-black/80">
-                  Showcasing artisan details and handcrafted perfection.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Hand finishing</p>
-                  <p>• Heritage and legacy</p>
-                  <p>• Premium material selection</p>
-                </section>
-              </>
-            )}
-            {popupScene === 5 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">🔥 Passion Scene</h2>
-                <p className="text-lg text-black/80">
-                  Emotion-driven segment exploring purpose and drive.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Vision and philosophy</p>
-                  <p>• Behind the scenes</p>
-                  <p>• Brand personality reveal</p>
-                </section>
-              </>
-            )}
-            {popupScene === 6 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">💎 Finale Scene</h2>
-                <p className="text-lg text-black/80">
-                  Cinematic outro with logo reveal and gratitude message.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Logo fade-in</p>
-                  <p>• Closing message</p>
-                  <p>• CTA or end transition</p>
-                </section>
-              </>
+              </div>
             )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

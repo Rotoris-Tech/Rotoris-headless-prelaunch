@@ -1,15 +1,143 @@
 @import "tailwindcss";
 
+/* Switzer Variable Font */
+@font-face {
+  font-family: 'Switzer';
+  src: url('/fonts/Switzer-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Rotoris Sans Font Family */
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/fonts/RotorisSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Decimal Font Family */
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-extralight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/fonts/decimal-black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Tailwind CSS Font Family Configuration */
+  --font-sans: 'Switzer';
+  --font-serif: 'Switzer';
+  --font-mono: 'Switzer';
+
+  /* Custom Font Families - Tailwind Compatible */
+  --font-switzer: 'Switzer';
+  --font-decimal-thin: 'Decimal-thin';
+  --font-decimal-extralight: 'Decimal-extralight';
+  --font-decimal-light: 'Decimal-light';
+  --font-decimal-book: 'Decimal-book';
+  --font-decimal-medium: 'Decimal-medium';
+  --font-decimal-black: 'Decimal-black';
+
+  /* RotorisSans Font Family */
+  --font-rotoris-sans: 'RotorisSans-regular';
+  --font-rotoris-sans-extralight: 'RotorisSans-extralight';
+  --font-rotoris-sans-light: 'RotorisSans-light';
+  --font-rotoris-sans-regular: 'RotorisSans-regular';
+  --font-rotoris-sans-medium: 'RotorisSans-medium';
+  --font-rotoris-sans-semibold: 'RotorisSans-semibold';
+  --font-rotoris-sans-bold: 'RotorisSans-bold';
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -48,7 +176,7 @@ body {
   background: #000;
   margin: 0;
   padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-switzer);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

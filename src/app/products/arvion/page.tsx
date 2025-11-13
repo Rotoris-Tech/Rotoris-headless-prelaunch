@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { productsData } from "../../data/products";
+
+const product = productsData.arvion;
 
 export const metadata = {
-  title: "Arvion - Rotoris",
-  description: "Discover Arvion by Rotoris",
+  title: `${product.name} - Rotoris`,
+  description: product.description,
 };
 
 export default function Arvion() {
@@ -11,17 +14,21 @@ export default function Arvion() {
       <main className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
         <Link
           href="/"
-          className="inline-flex items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="inline-flex items-center text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
         >
           ← Back to Home
         </Link>
 
         <div className="mt-12">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-            Arvion
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Welcome to Arvion - a premium product by Rotoris.
+          <div className="text-center mb-8">
+            <div className="text-6xl mb-4">{product.icon}</div>
+            <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
+              {product.name}
+            </h1>
+          </div>
+
+          <p className="mt-6 text-xl leading-8 text-zinc-600 dark:text-zinc-400 text-center max-w-3xl mx-auto">
+            {product.description}
           </p>
 
           <div className="mt-12 space-y-8">
@@ -30,7 +37,7 @@ export default function Arvion() {
                 Product Overview
               </h2>
               <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-                Add your product description here. Highlight the key features and benefits of Arvion.
+                {product.overview}
               </p>
             </section>
 
@@ -39,9 +46,9 @@ export default function Arvion() {
                 Key Features
               </h2>
               <ul className="mt-4 space-y-2 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-                <li>• Feature 1</li>
-                <li>• Feature 2</li>
-                <li>• Feature 3</li>
+                {product.features.map((feature, index) => (
+                  <li key={index}>• {feature}</li>
+                ))}
               </ul>
             </section>
 
@@ -50,7 +57,7 @@ export default function Arvion() {
                 Specifications
               </h2>
               <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-zinc-400">
-                Add technical specifications and details here.
+                {product.specifications}
               </p>
             </section>
           </div>
