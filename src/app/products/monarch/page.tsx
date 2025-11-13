@@ -13,7 +13,7 @@ export default function Monarch() {
   const rotorisLogoRef = useRef<HTMLImageElement>(null);
   const auriquaLogoRef = useRef<HTMLImageElement>(null);
   const scrollY = useRef<number>(0);
-  const animationFrameId = useRef<number>();
+  const animationFrameId = useRef<number | undefined>(undefined);
 
   // ROTORIS logo SVG as data URL
   const rotorisLogoSVG = `data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="166" height="24" viewBox="0 0 166 24" fill="none">
