@@ -1,0 +1,115 @@
+/* ============================================
+   Rotoris Sans Font Family
+   ============================================ */
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-ExtraLight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rotoris Sans';
+  src: url('/assets/fonts/RotorisSans-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
+   Switzer Variable Font
+   ============================================ */
+
+@font-face {
+  font-family: 'Switzer';
+  src: url('/assets/fonts/Switzer-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ============================================
+   Decimal Font Family
+   ============================================ */
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-extralight.woff2') format('woff2');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Decimal';
+  src: url('/assets/fonts/decimal-black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
