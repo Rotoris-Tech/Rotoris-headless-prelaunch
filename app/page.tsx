@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
+import { AuriquaProduct } from "@/components/products/AuriquaProduct";
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -367,9 +368,9 @@ export default function Home() {
   // ---------- popups ----------
   const popupColors: Record<number, string> = {
     2: "#FFF8F0", // DISCOVER
-    3: "#E9F7EF", // SUSTAINABILITY
-    4: "#EAF2FF", // TECHNOLOGY
-    5: "#FFF7E1", // CRAFTSMANSHIP
+    3: "#E9F7EF", // AURIQUA (green theme)
+    4: "#EAF2FF", // MONARCH (blue theme)
+    5: "#FFF7E1", // EXCELLENCE
     6: "#FFECEC", // PASSION
     7: "#F0E8FF", // FINALE
   };
@@ -485,12 +486,12 @@ export default function Home() {
         >
           <button
             onClick={closePopup}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full border border-black/40 flex items-center justify-center text-lg hover:bg-black/10 cursor-pointer"
+            className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full border border-black/40 flex items-center justify-center text-lg hover:bg-black/10 cursor-pointer"
           >
             ✕
           </button>
 
-          <div className="p-8 space-y-6">
+          <div className="space-y-6">
             {popupScene === 2 && (
               <>
                 <h2 className="text-3xl font-bold mb-4">✨ Discover Scene</h2>
@@ -504,21 +505,7 @@ export default function Home() {
                 </section>
               </>
             )}
-            {popupScene === 3 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">
-                  🌿 Sustainability Scene
-                </h2>
-                <p className="text-lg text-black/80">
-                  Focus on eco-materials, responsible production and innovation.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Material sourcing</p>
-                  <p>• Recycling process</p>
-                  <p>• Green partnerships</p>
-                </section>
-              </>
-            )}
+            {popupScene === 3 && <AuriquaProduct />}
             {popupScene === 4 && (
               <>
                 <h2 className="text-3xl font-bold mb-4">⚙️ Technology Scene</h2>
