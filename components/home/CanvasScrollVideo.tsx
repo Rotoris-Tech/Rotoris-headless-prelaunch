@@ -295,6 +295,7 @@ export function CanvasScrollVideo({
       scenes.length,
       clearAllAnimationTimeouts,
       drawFrame,
+      FRAME_INTERVAL_MS,
     ]
   );
 

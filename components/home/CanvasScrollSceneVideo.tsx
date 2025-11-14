@@ -9,6 +9,7 @@ import {
 } from "react";
 import { gsap } from "gsap";
 import Link from "next/link";
+import Image from "next/image";
 import { homeScenes } from "@/app/homeSceneData";
 
 type Props = {
@@ -376,10 +377,11 @@ export function CanvasScrollSceneVideo({ videoSrc }: Props) {
               {/* Product Image (if available) */}
               {currentProduct.image && (
                 <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-2xl">
-                  <img
+                  <Image
                     src={currentProduct.image}
                     alt={currentProduct.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </div>
               )}
