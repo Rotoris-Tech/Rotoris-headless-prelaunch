@@ -23,6 +23,12 @@ export function Header() {
               Monarch
             </Link>
             <Link
+              href="/scene"
+              className="text-sm font-medium hover:text-primary transition-colors"
+            >
+              Scene
+            </Link>
+            <Link
               href="/#newsletter"
               className="text-sm font-medium hover:text-primary transition-colors"
             >

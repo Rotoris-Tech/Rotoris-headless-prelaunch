@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./styles/globals.css";
+import { ErrorSuppressor } from "./_core/components/ErrorSuppressor";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
@@ -55,7 +56,31 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var originalError = console.error;
+                console.error = function() {
+                  var args = Array.prototype.slice.call(arguments);
+                  var message = (args[0] || '').toString();
+                  if (
+                    message.includes('not valid semver') ||
+                    message.includes('validateAndParse') ||
+                    message.includes('Invalid argument')
+                  ) {
+                    return;
+                  }
+                  originalError.apply(console, args);
+                };
+              })();
+            `,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning>
+        <ErrorSuppressor />
         {children}
       </body>
     </html>
