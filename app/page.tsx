@@ -16,24 +16,23 @@ export default function Home() {
   const scrollLock = useRef(false);
   const lastDirection = useRef<"forward" | "backward" | null>(null);
   const videoSetup = useRef(false);
-  const currentTimeUpdateHandler = useRef<((e: Event) => void) | null>(null);
-  const reverseAnimationId = useRef<number | null>(null);
-  const reverseTimeoutIds = useRef<NodeJS.Timeout[]>([]);
   const introPlayed = useRef(false);
 
-  const SCROLL_LOCK_DELAY = 500; // Longer delay to prevent multiple triggers
+  const reverseAnimationId = useRef<number | null>(null);
+
+  const SCROLL_LOCK_DELAY = 400;
+  const FPS = 25; // your video fps
+  const FRAME_DURATION = 1 / FPS; // seconds per frame
 
   // Video timestamps in seconds
-  // Intro plays from 0 to 7.12s, then scene 1 starts at 7.12s and ends at 15.8s
   const timestamps = useMemo(() => [0, 7.12, 17.35, 30.5, 43], []);
 
   const scenes = [
-    // 7.12s to 15.8s (scene 1)
     { id: 1, timestamp: 0 },
     { id: 2, timestamp: 7.12 },
     { id: 3, timestamp: 17.35, label: "Auriqua" },
     { id: 4, timestamp: 30.5, label: "Monarch" },
-    { id: 5, timestamp: 43, label: "Arvion"},
+    { id: 5, timestamp: 43, label: "Arvion" },
   ];
 
   // ---------- video setup ----------
@@ -43,7 +42,6 @@ export default function Home() {
 
     videoSetup.current = true;
 
-    // Set up video properties
     video.muted = true;
     video.playsInline = true;
     video.pause();
@@ -53,7 +51,6 @@ export default function Home() {
       video.currentTime = 0;
       setCurrentTime(0);
 
-      // Autoplay intro (first 5 seconds)
       if (!introPlayed.current) {
         introPlayed.current = true;
         playIntroSequence();
@@ -61,37 +58,29 @@ export default function Home() {
     };
 
     const playIntroSequence = async () => {
-      const FIRST_SCENE_END = timestamps[1]; // End of first scene (7.12s)
-      const TEXT_START = 5; // Show text at 5 seconds
-      const TEXT_END = 7; // Text becomes visible at 5s, stays until user scrolls
+      const FIRST_SCENE_END = timestamps[1]; // 7.12s
+      const TEXT_START = 5;
+      const TEXT_END = 7;
 
       try {
-        // Play video from 0 to end of first scene
         video.currentTime = 0;
-        scrollLock.current = true; // Lock scroll during autoscroll
+        scrollLock.current = true;
         await video.play();
 
-        // Monitor playback
         const checkTime = () => {
-          const currentTime = video.currentTime;
+          const t = video.currentTime;
 
-          // Show brand text at 5 seconds and keep it visible
-          if (currentTime >= TEXT_START && currentTime < TEXT_END && !showBrandText) {
+          if (t >= TEXT_START && t < TEXT_END && !showBrandText) {
             setShowBrandText(true);
           }
 
-          // Check if we've reached the end of first scene
-          if (currentTime >= FIRST_SCENE_END) {
+          if (t >= FIRST_SCENE_END) {
             video.pause();
-            video.currentTime = FIRST_SCENE_END; // Set exact position
-
-            // Remove intro overlay and unlock scroll
+            video.currentTime = FIRST_SCENE_END;
             setShowIntro(false);
-            setCurrentScene(2); // Move to scene 2
+            setCurrentScene(2);
             setCurrentTime(FIRST_SCENE_END);
-            scrollLock.current = false; // Unlock scroll at end of first scene
-            // Keep brand text visible until user scrolls
-
+            scrollLock.current = false;
             return;
           }
 
@@ -120,7 +109,6 @@ export default function Home() {
     video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("error", handleError);
 
-    // Trigger load
     video.load();
 
     return () => {
@@ -130,8 +118,22 @@ export default function Home() {
         video.removeEventListener("error", handleError);
         videoSetup.current = false;
       }
+      if (reverseAnimationId.current) {
+        cancelAnimationFrame(reverseAnimationId.current);
+        reverseAnimationId.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // cancel any running reverse animation on unmount
+  useEffect(() => {
+    return () => {
+      if (reverseAnimationId.current) {
+        cancelAnimationFrame(reverseAnimationId.current);
+        reverseAnimationId.current = null;
+      }
+    };
   }, []);
 
   // ---------- playScene (video-based) ----------
@@ -147,7 +149,7 @@ export default function Home() {
 
       if (scrollLock.current) return;
 
-      // Hide brand text when user starts scrolling from scene 2
+      // Hide brand text when user scrolls from scene 2
       if (currentScene === 2 && showBrandText) {
         setShowBrandText(false);
       }
@@ -169,10 +171,9 @@ export default function Home() {
       if (forward) {
         if (currentScene < scenes.length) {
           newSceneId = currentScene + 1;
-          startTime = timestamps[currentScene - 1]; // Current scene timestamp
-          endTime = timestamps[newSceneId - 1]; // Next scene timestamp
+          startTime = timestamps[currentScene - 1];
+          endTime = timestamps[newSceneId - 1];
         } else {
-          // Already at last scene, no change
           isAnimating.current = false;
           scrollLock.current = false;
           return;
@@ -180,152 +181,121 @@ export default function Home() {
       } else {
         if (currentScene > 1) {
           newSceneId = currentScene - 1;
-          startTime = timestamps[currentScene - 1]; // Current scene timestamp
-          endTime = timestamps[newSceneId - 1]; // Previous scene timestamp
+          startTime = timestamps[currentScene - 1];
+          endTime = timestamps[newSceneId - 1];
         } else {
-          // Already at first scene, no change
           isAnimating.current = false;
           scrollLock.current = false;
           return;
         }
       }
 
-      // Stop any existing animations and cleanup
-      video.pause();
-
-      // Remove any existing timeupdate handler
-      if (currentTimeUpdateHandler.current) {
-        video.removeEventListener(
-          "timeupdate",
-          currentTimeUpdateHandler.current
-        );
-        currentTimeUpdateHandler.current = null;
-      }
-
-      // Cancel any running reverse animation
+      // stop any existing reverse animation
       if (reverseAnimationId.current) {
         cancelAnimationFrame(reverseAnimationId.current);
         reverseAnimationId.current = null;
       }
 
-      // Clear all pending reverse timeouts
-      reverseTimeoutIds.current.forEach((timeoutId) => clearTimeout(timeoutId));
-      reverseTimeoutIds.current = [];
+      video.pause();
+      video.playbackRate = 1;
 
       if (forward) {
-        // Set start position precisely
+        // ---------- FORWARD: use native playback between startTime and endTime ----------
         video.currentTime = startTime;
-        video.playbackRate = 1.0;
 
-        // Small delay to ensure currentTime is set
         setTimeout(() => {
           video.play();
 
-          // Use requestAnimationFrame for more precise monitoring
           const monitorPlayback = () => {
             if (video.currentTime >= endTime - 0.02) {
-              // Very small buffer for precise stopping
               video.pause();
-              video.currentTime = endTime; // Set exact position
-              setCurrentTime(endTime);
-              setCurrentScene(newSceneId);
-              isAnimating.current = false;
-
-              // Consistent delay for forward scroll too
-              setTimeout(() => {
-                scrollLock.current = false;
-              }, SCROLL_LOCK_DELAY);
-              return; // Stop monitoring
-            }
-
-            // Continue monitoring if still playing
-            if (!video.paused) {
-              requestAnimationFrame(monitorPlayback);
-            }
-          };
-
-          // Start monitoring
-          requestAnimationFrame(monitorPlayback);
-        }, 50);
-      } else {
-        // For backward, try using actual reverse playback
-        video.currentTime = startTime;
-
-        // Try setting negative playback rate for true reverse playback
-        try {
-          video.playbackRate = -1;
-          video.play();
-
-          // Monitor reverse playback
-          const onReverseTimeUpdate = () => {
-            if (video.currentTime <= endTime + 0.05) {
-              // Small buffer
-              video.pause();
-              video.playbackRate = 1; // Reset to normal
               video.currentTime = endTime;
               setCurrentTime(endTime);
               setCurrentScene(newSceneId);
-              video.removeEventListener("timeupdate", onReverseTimeUpdate);
-              currentTimeUpdateHandler.current = null;
               isAnimating.current = false;
 
-              // Consistent delay for native reverse too
-              setTimeout(() => {
-                scrollLock.current = false;
-              }, SCROLL_LOCK_DELAY);
-            }
-          };
-
-          currentTimeUpdateHandler.current = onReverseTimeUpdate;
-          video.addEventListener("timeupdate", onReverseTimeUpdate);
-        } catch (error) {
-          // Fallback: If reverse playback not supported, use slow native playback in reverse direction
-          console.log(
-            "Reverse playback not supported, using slow reverse simulation"
-          );
-
-          // Create a smoother, faster animation with optimal balance
-          video.currentTime = startTime;
-          const segmentDuration = Math.abs(endTime - startTime);
-          const steps = Math.ceil(segmentDuration * 20); // Fewer steps for smoother animation
-          const stepTime = (endTime - startTime) / steps;
-          let currentStep = 0;
-
-          const reverseStep = () => {
-            if (currentStep >= steps) {
-              video.currentTime = endTime;
-              setCurrentTime(endTime);
-              setCurrentScene(newSceneId);
-              // Clear all timeouts when animation completes
-              reverseTimeoutIds.current = [];
-              isAnimating.current = false;
-
-              // Longer delay before allowing next scroll for reverse
               setTimeout(() => {
                 scrollLock.current = false;
               }, SCROLL_LOCK_DELAY);
               return;
             }
 
-            const newTime = startTime + stepTime * currentStep;
-            video.currentTime = newTime;
-
-            // Balanced timing for smoothness
-            const timeoutId = setTimeout(() => {
-              setCurrentTime(newTime);
-              currentStep++;
-              reverseStep();
-            }, 40); // ~40fps, good balance of speed and smoothness
-
-            // Track timeout for cleanup
-            reverseTimeoutIds.current.push(timeoutId);
+            if (!video.paused) {
+              requestAnimationFrame(monitorPlayback);
+            }
           };
 
-          reverseStep();
+          requestAnimationFrame(monitorPlayback);
+        }, 40);
+      } else {
+        // ---------- BACKWARD: frame-locked reverse at 25fps ----------
+        video.currentTime = startTime;
+
+        const totalSegmentSeconds = Math.abs(startTime - endTime);
+        // Optional: defensively clamp too-tiny segments
+        if (totalSegmentSeconds < FRAME_DURATION / 2) {
+          video.currentTime = endTime;
+          setCurrentTime(endTime);
+          setCurrentScene(newSceneId);
+          isAnimating.current = false;
+          setTimeout(() => {
+            scrollLock.current = false;
+          }, SCROLL_LOCK_DELAY);
+          return;
         }
+
+        let lastTimestamp: number | null = null;
+        let accumulator = 0; // seconds accumulated since last frame step
+
+        const step = (now: number) => {
+          if (!videoRef.current) return; // safety
+          const v = videoRef.current;
+
+          if (lastTimestamp === null) {
+            lastTimestamp = now;
+            reverseAnimationId.current = requestAnimationFrame(step);
+            return;
+          }
+
+          const deltaSec = (now - lastTimestamp) / 1000;
+          lastTimestamp = now;
+          accumulator += deltaSec;
+
+          // Move one frame (or multiple if slow) for each FRAME_DURATION
+          while (accumulator >= FRAME_DURATION) {
+            accumulator -= FRAME_DURATION;
+
+            const nextTime = v.currentTime - FRAME_DURATION;
+
+            if (nextTime <= endTime + FRAME_DURATION / 4) {
+              // reached or overshot target
+              v.currentTime = endTime;
+              setCurrentTime(endTime);
+              setCurrentScene(newSceneId);
+              isAnimating.current = false;
+
+              if (reverseAnimationId.current) {
+                cancelAnimationFrame(reverseAnimationId.current);
+                reverseAnimationId.current = null;
+              }
+
+              setTimeout(() => {
+                scrollLock.current = false;
+              }, SCROLL_LOCK_DELAY);
+              return;
+            }
+
+            v.currentTime = nextTime;
+            setCurrentTime(nextTime);
+          }
+
+          reverseAnimationId.current = requestAnimationFrame(step);
+        };
+
+        reverseAnimationId.current = requestAnimationFrame(step);
       }
     },
-    [currentScene, timestamps, scenes.length, showBrandText]
+    [currentScene, timestamps, scenes.length, showBrandText, FRAME_DURATION]
   );
 
   // ---------- input ----------
@@ -357,19 +327,19 @@ export default function Home() {
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
     };
-  }, [popupScene, currentScene, playScene]);
+  }, [popupScene, playScene]);
 
   // ---------- buttons ----------
   const currentSceneData = scenes.find((s) => s.id === currentScene)!;
 
-  const showButton = currentSceneData && currentScene >= 2; // Show button starting from scene 2 (DISCOVER)
+  const showButton = currentSceneData && currentScene >= 2;
   const buttonEnabled = showButton;
 
   // ---------- popups ----------
   const popupColors: Record<number, string> = {
     2: "#FFF8F0", // DISCOVER
-    3: "#E9F7EF", // AURIQUA (green theme)
-    4: "#EAF2FF", // MONARCH (blue theme)
+    3: "#E9F7EF", // AURIQUA
+    4: "#EAF2FF", // MONARCH
     5: "#FFF7E1", // EXCELLENCE
     6: "#FFECEC", // PASSION
     7: "#F0E8FF", // FINALE
@@ -412,17 +382,12 @@ export default function Home() {
         loop={false}
         autoPlay={false}
       >
-        <source
-          src="/assets/home/rotoris-hero.mp4"
-          type="video/mp4"
-        />
+        <source src="/assets/home/rotoris-hero.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
 
       {/* Intro Overlay - blocks interaction during intro */}
-      {showIntro && (
-        <div className="fixed inset-0 z-50 pointer-events-auto" />
-      )}
+      {showIntro && <div className="fixed inset-0 z-50 pointer-events-auto" />}
 
       {/* Brand Text - shows from 5-7s and stays until user scrolls */}
       {showBrandText && (
@@ -430,9 +395,9 @@ export default function Home() {
           <h1
             className="text-8xl md:text-9xl font-bold text-white tracking-wider animate-fade-in"
             style={{
-              fontFamily: 'serif',
-              textShadow: '0 0 40px rgba(255,255,255,0.5)',
-              animation: 'fadeInScale 2s ease-out forwards'
+              fontFamily: "serif",
+              textShadow: "0 0 40px rgba(255,255,255,0.5)",
+              animation: "fadeInScale 2s ease-out forwards",
             }}
           >
             ROTORIS
@@ -491,7 +456,7 @@ export default function Home() {
             ✕
           </button>
 
-          <div className="space-y-6">
+          <div className="space-y-6 p-6 md:p-10">
             {popupScene === 2 && (
               <>
                 <h2 className="text-3xl font-bold mb-4">✨ Discover Scene</h2>
