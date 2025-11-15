@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 import { AuriquaProduct } from "@/components/products/AuriquaProduct";
+import MonarchProduct from "@/components/products/MonarchProduct";
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentScene, setCurrentScene] = useState(1);
-  const [popupScene, setPopupScene] = useState<number | null>(null);
+  const [popupScene, setPopupScene] = useState<number | null>(4);
   const [currentTime, setCurrentTime] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [showBrandText, setShowBrandText] = useState(false);
@@ -456,9 +457,9 @@ export default function Home() {
             ✕
           </button>
 
-          <div className="space-y-6 p-6 md:p-10">
+          <div>
             {popupScene === 2 && (
-              <>
+              <div className="space-y-6 p-6 md:p-10">
                 <h2 className="text-3xl font-bold mb-4">✨ Discover Scene</h2>
                 <p className="text-lg text-black/80">
                   Hero reveal and cinematic introduction.
@@ -468,22 +469,10 @@ export default function Home() {
                   <p>• Brand story</p>
                   <p>• Ambient mood build-up</p>
                 </section>
-              </>
+              </div>
             )}
             {popupScene === 3 && <AuriquaProduct />}
-            {popupScene === 4 && (
-              <>
-                <h2 className="text-3xl font-bold mb-4">⚙️ Technology Scene</h2>
-                <p className="text-lg text-black/80">
-                  Macro transitions highlighting technical precision.
-                </p>
-                <section className="space-y-3 mt-4">
-                  <p>• Engineering excellence</p>
-                  <p>• 3D modeling visuals</p>
-                  <p>• Motion-capture integration</p>
-                </section>
-              </>
-            )}
+            {popupScene === 4 && <MonarchProduct />}
             {popupScene === 5 && (
               <>
                 <h2 className="text-3xl font-bold mb-4">
