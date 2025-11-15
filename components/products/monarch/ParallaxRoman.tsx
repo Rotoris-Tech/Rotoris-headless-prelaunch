@@ -18,7 +18,15 @@ const ParallaxRoman = () => {
         newScrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
       }
 
-      setScrollY(newScrollY);
+      // Calculate scroll relative to this section
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const sectionTop = containerRef.current.offsetTop;
+        const relativeScroll = Math.max(0, newScrollY - sectionTop);
+        setScrollY(relativeScroll);
+      } else {
+        setScrollY(newScrollY);
+      }
     };
 
     const handleScroll = (event?: Event) => {
@@ -115,16 +123,16 @@ const ParallaxRoman = () => {
         ref={containerRef}
         className="relative w-full min-h-[100vh] overflow-hidden"
       >
-        {/* Foreground Parallax Clouds - Starting further down, moving up slowly */}
+        {/* Foreground Parallax Clouds - Positioned relative to section */}
         <Image
           src="/assets/products/monarch/Cloud.svg"
           alt="cloud-1"
           width={250}
           height={100}
           style={{
-            transform: `translateY(${scrollY * -0.3}px)`,
+            transform: `translateY(${100 + scrollY * -0.3}px)`,
             mixBlendMode: "screen",
-            top: "200px",
+            top: "0px",
             left: "-10px",
           }}
           className="absolute"
@@ -135,9 +143,9 @@ const ParallaxRoman = () => {
           width={162}
           height={68}
           style={{
-            transform: `translateY(${scrollY * -0.5}px)`,
+            transform: `translateY(${150 + scrollY * -0.5}px)`,
             mixBlendMode: "screen",
-            top: "250px",
+            top: "0px",
             right: "-20px",
           }}
           className="absolute"
@@ -148,9 +156,9 @@ const ParallaxRoman = () => {
           width={210}
           height={100}
           style={{
-            transform: `translateY(${scrollY * -0.4}px)`,
+            transform: `translateY(${400 + scrollY * -0.4}px)`,
             mixBlendMode: "screen",
-            top: "500px",
+            top: "0px",
             left: "-10px",
             zIndex: 0,
           }}
@@ -162,9 +170,9 @@ const ParallaxRoman = () => {
           width={400}
           height={229}
           style={{
-            transform: `translateY(${scrollY * -0.6}px)`,
+            transform: `translateY(${500 + scrollY * -0.6}px)`,
             mixBlendMode: "screen",
-            top: "600px",
+            top: "0px",
             right: "-20px",
             zIndex: 0,
           }}
