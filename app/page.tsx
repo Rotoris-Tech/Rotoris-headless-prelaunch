@@ -25,15 +25,15 @@ export default function Home() {
 
   // Video timestamps in seconds
   // Intro plays from 0 to 7.12s, then scene 1 starts at 7.12s and ends at 15.8s
-  const timestamps = useMemo(() => [0, 7.12, 17.95, 31.1, 35], []);
+  const timestamps = useMemo(() => [0, 7.12, 17.35, 30.5, 43], []);
 
   const scenes = [
     // 7.12s to 15.8s (scene 1)
     { id: 1, timestamp: 0 },
     { id: 2, timestamp: 7.12 },
-    { id: 3, timestamp: 17.95, label: "Auriqua" },
-    { id: 4, timestamp: 31.1, label: "Monarch" },
-    { id: 5, timestamp: 35},
+    { id: 3, timestamp: 17.35, label: "Auriqua" },
+    { id: 4, timestamp: 30.5, label: "Monarch" },
+    { id: 5, timestamp: 43, label: "Arvion"},
   ];
 
   // ---------- video setup ----------
