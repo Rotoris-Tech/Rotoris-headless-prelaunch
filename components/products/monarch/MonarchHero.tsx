@@ -17,9 +17,18 @@ const MonarchHero = () => {
   const startReversePlayback = () => {
     const video = videoRef.current;
     if (!video || !video.duration) {
+      console.log("❌ REVERSE: Cannot start - no video or duration", {
+        hasVideo: !!video,
+        duration: video?.duration
+      });
       return;
     }
 
+    console.log("🎬 REVERSE: Starting reverse playback", {
+      currentTime: video.currentTime,
+      duration: video.duration,
+      fps: FPS
+    });
 
     // Stop any existing animation
     if (reverseAnimationId.current) {
@@ -29,12 +38,17 @@ const MonarchHero = () => {
 
     let lastTimestamp: number | null = null;
     let accumulator = 0; // Seconds accumulated since last frame step
+    let frameCount = 0; // Debug counter
 
     const step = (now: number) => {
       const v = videoRef.current;
-      if (!v) return; // Safety check
+      if (!v) {
+        console.log("❌ REVERSE: Video ref lost during playback");
+        return; // Safety check
+      }
 
       if (lastTimestamp === null) {
+        console.log("🎯 REVERSE: First frame, initializing timestamp");
         lastTimestamp = now;
         reverseAnimationId.current = requestAnimationFrame(step);
         return;
@@ -44,16 +58,25 @@ const MonarchHero = () => {
       lastTimestamp = now;
       accumulator += deltaSec;
 
+      // Debug: Log every frame to see if we're getting called
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        console.log(`🔄 RAF: Frame ${frameCount}, deltaSec: ${deltaSec.toFixed(3)}s, accumulator: ${accumulator.toFixed(3)}s, currentTime: ${v.currentTime.toFixed(2)}s`);
+      }
+
       // Move one frame for each FRAME_DURATION
       while (accumulator >= FRAME_DURATION) {
         accumulator -= FRAME_DURATION;
 
         const nextTime = v.currentTime - FRAME_DURATION;
 
-        // Stepping backward through video frames
+        // Log every frame change
+        console.log(`🎞️ REVERSE: Frame ${frameCount}, time: ${v.currentTime.toFixed(2)}s → ${nextTime.toFixed(2)}s`);
 
+        // Stepping backward through video frames
         if (nextTime <= FRAME_DURATION / 4) {
           // Reached start
+          console.log("🏁 REVERSE: Reached video start, stopping playback");
           v.currentTime = 0;
           setIsPlaying(false);
           setIsReversing(false);
@@ -72,6 +95,10 @@ const MonarchHero = () => {
   };
 
   const stopReversePlayback = () => {
+    console.log("⏹️ STOP: stopReversePlayback called", {
+      hasAnimationId: !!reverseAnimationId.current,
+      animationId: reverseAnimationId.current
+    });
     if (reverseAnimationId.current) {
       cancelAnimationFrame(reverseAnimationId.current);
       reverseAnimationId.current = null;
@@ -80,19 +107,20 @@ const MonarchHero = () => {
 
   // Disable scroll on popup while video is playing
   useEffect(() => {
-    const popupContainer = document.querySelector('.popup') as HTMLElement;
+    const popupContainer = document.querySelector(".popup") as HTMLElement;
 
     if (isPlaying && popupContainer) {
-      popupContainer.style.overflow = 'hidden';
+      popupContainer.style.overflow = "hidden";
     } else if (popupContainer) {
-      popupContainer.style.overflow = 'auto';
+      popupContainer.style.overflow = "auto";
     }
 
     return () => {
       if (popupContainer) {
-        popupContainer.style.overflow = 'auto';
+        popupContainer.style.overflow = "auto";
       }
-      stopReversePlayback();
+      // Don't stop reverse playback here - it causes immediate cancellation
+      // stopReversePlayback();
     };
   }, [isPlaying]);
 
@@ -117,8 +145,12 @@ const MonarchHero = () => {
         scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
       }
 
+      // Debug: Log every scroll event with current states
+      console.log(`SCROLL: scrollY=${scrollY}, videoStarted=${videoStarted}, videoEnded=${videoEnded}, isPlaying=${isPlaying}, isReversing=${isReversing}`);
+
       // Start video when scrolling down past 50px
       if (scrollY > 50 && !videoStarted && !videoEnded && videoRef.current) {
+        console.log("✅ FORWARD: Starting video forward playback");
         setVideoStarted(true);
         setIsPlaying(true);
         videoRef.current.play();
@@ -126,6 +158,12 @@ const MonarchHero = () => {
 
       // Play video in reverse when scrolling back from parallax
       if (scrollY < 50 && videoEnded && !isReversing) {
+        console.log("🔄 REVERSE: Starting video reverse playback", {
+          scrollY,
+          videoEnded,
+          isReversing,
+          videoDuration: videoRef.current?.duration
+        });
         setVideoEnded(false);
         setVideoStarted(true);
         setIsPlaying(true);
@@ -137,10 +175,33 @@ const MonarchHero = () => {
           startReversePlayback();
         }
       }
+
+      // Stop reverse playback and hide video when scrolling back to the very top
+      if (scrollY <= 30 && isReversing && isPlaying) {
+        console.log("⏹️ STOP: Stopping reverse at top", { scrollY });
+        setIsPlaying(false);
+        setIsReversing(false);
+        setVideoStarted(false);
+        setVideoEnded(false);
+        stopReversePlayback();
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+        }
+      }
+
+      // Debug: Check for missed conditions
+      if (scrollY < 50 && videoEnded) {
+        console.log("🔍 DEBUG: In reverse trigger zone but not starting reverse", {
+          scrollY,
+          videoEnded,
+          isReversing,
+          condition: scrollY < 50 && videoEnded && !isReversing
+        });
+      }
     };
 
     // Listen to popup scroll specifically
-    const popupContainer = document.querySelector('.popup');
+    const popupContainer = document.querySelector(".popup");
 
     window.addEventListener("scroll", handleScroll);
     if (popupContainer) {
@@ -160,26 +221,38 @@ const MonarchHero = () => {
     if (!video) return;
 
     const handleVideoEnded = () => {
+      console.log("🎬 VIDEO: Video ended event", {
+        isReversing,
+        currentTime: video.currentTime,
+        duration: video.duration
+      });
       if (!isReversing) {
         // Forward playback ended
+        console.log("✅ VIDEO: Forward playback completed, setting videoEnded=true");
         setIsPlaying(false);
         setVideoEnded(true);
       }
     };
 
     const handleLoadedMetadata = () => {
-      // Video metadata loaded
+      console.log("📁 VIDEO: Metadata loaded", {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      });
     };
 
     const handleCanPlayThrough = () => {
-      // Video ready for playback
+      console.log("▶️ VIDEO: Can play through, ready for playback");
     };
 
+    console.log("🔧 VIDEO: Setting up video event listeners");
     video.addEventListener("ended", handleVideoEnded);
     video.addEventListener("loadedmetadata", handleLoadedMetadata);
     video.addEventListener("canplaythrough", handleCanPlayThrough);
 
     return () => {
+      console.log("🧹 VIDEO: Cleaning up video event listeners");
       video.removeEventListener("ended", handleVideoEnded);
       video.removeEventListener("loadedmetadata", handleLoadedMetadata);
       video.removeEventListener("canplaythrough", handleCanPlayThrough);
@@ -189,9 +262,23 @@ const MonarchHero = () => {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full ${videoEnded ? 'h-0' : 'min-h-[200vh]'} bg-black transition-all duration-500`}
+      className={`relative w-full ${
+        videoEnded ? "h-0" : "min-h-[200vh]"
+      } bg-black transition-all duration-500`}
     >
-      <div className={`${isPlaying ? 'fixed' : 'sticky'} ${videoEnded ? 'hidden' : ''} top-0 w-full h-screen bg-black z-50`}>
+      <div
+        className={`${
+          videoEnded ? "hidden" : ""
+        } top-0 w-full h-screen bg-black z-50`}
+        style={{
+          position:
+            isPlaying && videoStarted && !isReversing ? "fixed" : "sticky",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: isPlaying && (videoStarted || isReversing) ? 9999 : 50,
+        }}
+      >
         <video
           ref={videoRef}
           className="w-full h-full object-cover"
@@ -199,7 +286,10 @@ const MonarchHero = () => {
           playsInline
           preload="auto"
         >
-          <source src="/assets/products/monarch/Monarch Hero.mp4" type="video/mp4" />
+          <source
+            src="/assets/products/monarch/Monarch Hero.mp4"
+            type="video/mp4"
+          />
           Your browser does not support the video tag.
         </video>
 
