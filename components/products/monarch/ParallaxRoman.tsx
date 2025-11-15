@@ -3,9 +3,10 @@ import React, { useEffect, useRef, useState } from "react";
 
 const ParallaxRoman = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const ideationRef = useRef<HTMLDivElement>(null);
   const [scrollY, setScrollY] = useState(0);
-  const [visibleMoons, setVisibleMoons] = useState<number[]>([]);
-  const [textVisible, setTextVisible] = useState(false);
+  const [sectionVisible, setSectionVisible] = useState(false);
+  const [ideationVisible, setIdeationVisible] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -15,7 +16,7 @@ const ParallaxRoman = () => {
         const containerHeight = rect.height;
         const windowHeight = window.innerHeight;
 
-        // Calculate scroll progress for this container
+        // Calculate scroll progress for parallax clouds
         const scrollProgress = Math.max(
           0,
           Math.min(
@@ -25,20 +26,10 @@ const ParallaxRoman = () => {
         );
         setScrollY(scrollProgress);
 
-        // Show moons sequentially based on scroll progress
-        const moonThresholds = [0.2, 0.35, 0.5, 0.65, 0.8];
-        const newVisibleMoons: number[] = [];
-
-        moonThresholds.forEach((threshold, index) => {
-          if (scrollProgress >= threshold) {
-            newVisibleMoons.push(index + 1);
-          }
-        });
-
-        setVisibleMoons(newVisibleMoons);
-
-        // Show text after all moons are visible
-        setTextVisible(scrollProgress >= 0.6);
+        // Show moons when section enters viewport
+        if (containerTop < windowHeight && !sectionVisible) {
+          setSectionVisible(true);
+        }
       }
     };
 
@@ -46,7 +37,30 @@ const ParallaxRoman = () => {
     handleScroll(); // Initial check
 
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [sectionVisible]);
+
+  // Separate useEffect for Intersection Observer
+  useEffect(() => {
+    if (!ideationRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !ideationVisible) {
+            setIdeationVisible(true);
+          }
+        });
+      },
+      {
+        threshold: 0.1, // Trigger when 10% of the element is visible
+        rootMargin: '0px 0px -10% 0px' // Trigger slightly before element fully enters
+      }
+    );
+
+    observer.observe(ideationRef.current);
+
+    return () => observer.disconnect();
+  }, [ideationVisible]);
 
   const moonSizes = [
     { width: 110, height: 110 }, // moon-1 (smallest)
@@ -57,139 +71,231 @@ const ParallaxRoman = () => {
   ];
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full min-h-[100vh] overflow-hidden"
-    >
-      {/* Floating Clouds with Simple Parallax - Start from original positions, move up at different speeds */}
-      <Image
-        src="/assets/products/monarch/Cloud.svg"
-        alt="cloud-1"
-        width={250}
-        height={100}
-        style={{
-          transform: `translateY(-${scrollY * 20}px) translateX(${
-            Math.sin(scrollY * 3) * 15
-          }px)`,
-          mixBlendMode: "screen",
-          top: "100px",
-        }}
-        className="absolute left-[-10px] transition-transform duration-100 ease-out"
-      />
-      <Image
-        src="/assets/products/monarch/Cloud (1).svg"
-        alt="cloud-2"
-        width={162}
-        height={68}
-        style={{
-          transform: `translateY(-${scrollY * 60}px) translateX(${
-            Math.sin(scrollY * 2.5) * -20
-          }px)`,
-          mixBlendMode: "screen",
-          top: "150px",
-        }}
-        className="absolute right-[-20px] transition-transform duration-80 ease-out"
-      />
-      <Image
-        src="/assets/products/monarch/Cloud (2).svg"
-        alt="cloud-3"
-        width={210}
-        height={100}
-        style={{
-          transform: `translateY(-${scrollY * 40}px) translateX(${
-            Math.sin(scrollY * 1.8) * 12
-          }px)`,
-          mixBlendMode: "screen",
-          top: "500px",
-        }}
-        className="absolute left-[-10px] transition-transform duration-120 ease-out"
-      />
-      <Image
-        src="/assets/products/monarch/Cloud (3).svg"
-        alt="cloud-4"
-        width={400}
-        height={229}
-        style={{
-          transform: `translateY(-${scrollY * 80}px) translateX(${
-            Math.sin(scrollY * 2.8) * -18
-          }px)`,
-          mixBlendMode: "screen",
-          top: "500px",
-        }}
-        className="absolute right-[-20px] transition-transform duration-100 ease-out"
-      />
+    <>
+      <div
+        ref={containerRef}
+        className="relative w-full min-h-[100vh] overflow-hidden"
+      >
+        {/* Floating Clouds with Simple Parallax - Start from original positions, move up at different speeds */}
+        <Image
+          src="/assets/products/monarch/Cloud.svg"
+          alt="cloud-1"
+          width={250}
+          height={100}
+          style={{
+            transform: `translateY(-${scrollY * 20}px) translateX(${
+              Math.sin(scrollY * 3) * 15
+            }px)`,
+            mixBlendMode: "screen",
+            top: "100px",
+          }}
+          className="absolute left-[-10px] transition-transform duration-100 ease-out"
+        />
+        <Image
+          src="/assets/products/monarch/Cloud (1).svg"
+          alt="cloud-2"
+          width={162}
+          height={68}
+          style={{
+            transform: `translateY(-${scrollY * 60}px) translateX(${
+              Math.sin(scrollY * 2.5) * -20
+            }px)`,
+            mixBlendMode: "screen",
+            top: "150px",
+          }}
+          className="absolute right-[-20px] transition-transform duration-80 ease-out"
+        />
+        <Image
+          src="/assets/products/monarch/Cloud (2).svg"
+          alt="cloud-3"
+          width={210}
+          height={100}
+          style={{
+            transform: `translateY(-${scrollY * 40}px) translateX(${
+              Math.sin(scrollY * 1.8) * 12
+            }px)`,
+            mixBlendMode: "screen",
+            top: "500px",
+          }}
+          className="absolute left-[-10px] transition-transform duration-120 ease-out"
+        />
+        <Image
+          src="/assets/products/monarch/Cloud (3).svg"
+          alt="cloud-4"
+          width={400}
+          height={229}
+          style={{
+            transform: `translateY(-${scrollY * 80}px) translateX(${
+              Math.sin(scrollY * 2.8) * -18
+            }px)`,
+            mixBlendMode: "screen",
+            top: "500px",
+          }}
+          className="absolute right-[-20px] transition-transform duration-100 ease-out"
+        />
 
-      {/* Sequential Moon Images */}
-      <div style={{ top: "220px" }} className="absolute w-full">
-        <div className="flex items-end justify-center" style={{ gap: "20px" }}>
-          {[1, 2, 3, 4, 5].map((moonIndex) => (
-            <div
-              key={moonIndex}
-              style={{
-                transform: `translateY(${
-                  moonIndex === 3
-                    ? "70px"
-                    : moonIndex === 2
-                    ? "30px"
-                    : moonIndex === 4
-                    ? "15px"
-                    : moonIndex === 1
-                    ? "-10px"
-                    : "-20px"
-                })`,
-                marginLeft:
-                  moonIndex === 2
-                    ? "-30px"
-                    : moonIndex === 3
-                    ? "-25px"
-                    : moonIndex === 4
-                    ? "-15px"
-                    : "0px",
-                marginRight:
-                  moonIndex === 2
-                    ? "-15px"
-                    : moonIndex === 3
-                    ? "-15px"
-                    : moonIndex === 4
-                    ? "-10px"
-                    : "0px",
-              }}
-            >
-              <Image
-                src={`/assets/products/monarch/moon-${moonIndex}.svg`}
-                alt={`moon-${moonIndex}`}
-                width={moonSizes[moonIndex - 1].width}
-                height={moonSizes[moonIndex - 1].height}
-                className="drop-shadow-lg"
-              />
-            </div>
-          ))}
+        {/* Sequential Moon Images */}
+        <div style={{ top: "220px" }} className="absolute w-full">
+          <div
+            className="flex items-end justify-center"
+            style={{ gap: "20px" }}
+          >
+            {[1, 2, 3, 4, 5].map((moonIndex) => (
+              <div
+                key={moonIndex}
+                className={`transition-all duration-1200 ease-out ${
+                  sectionVisible
+                    ? "opacity-100 scale-100"
+                    : "opacity-0 scale-50"
+                }`}
+                style={{
+                  transform: `translateY(${
+                    moonIndex === 3
+                      ? "70px"
+                      : moonIndex === 2
+                      ? "30px"
+                      : moonIndex === 4
+                      ? "15px"
+                      : moonIndex === 1
+                      ? "-10px"
+                      : "-20px"
+                  })`,
+                  marginLeft:
+                    moonIndex === 2
+                      ? "-30px"
+                      : moonIndex === 3
+                      ? "-25px"
+                      : moonIndex === 4
+                      ? "-15px"
+                      : "0px",
+                  marginRight:
+                    moonIndex === 2
+                      ? "-15px"
+                      : moonIndex === 3
+                      ? "-15px"
+                      : moonIndex === 4
+                      ? "-10px"
+                      : "0px",
+                  transitionDelay: `${(moonIndex - 1) * 250}ms`,
+                }}
+              >
+                <Image
+                  src={`/assets/products/monarch/moon-${moonIndex}.svg`}
+                  alt={`moon-${moonIndex}`}
+                  width={moonSizes[moonIndex - 1].width}
+                  height={moonSizes[moonIndex - 1].height}
+                  className="drop-shadow-lg"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Masked Slide-up Text Animation */}
+          <div
+            className={`mt-16 text-center transition-all duration-1500 ease-out ${
+              sectionVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+            style={{
+              maskImage: sectionVisible
+                ? "linear-gradient(to bottom, black 0%, black 100%)"
+                : "linear-gradient(to bottom, transparent 0%, transparent 50%, black 100%)",
+              WebkitMaskImage: sectionVisible
+                ? "linear-gradient(to bottom, black 0%, black 100%)"
+                : "linear-gradient(to bottom, transparent 0%, transparent 50%, black 100%)",
+              transitionDelay: "1250ms",
+            }}
+          >
+            <p className="text-white text-lg md:text-xl lg:text-2xl font-light leading-relaxed max-w-2xl mx-auto px-4">
+              "A reminder that everything, even time, moves in phases. Yet only
+              the enduring are remembered."
+            </p>
+          </div>
         </div>
+      </div>
 
-        {/* Masked Slide-up Text Animation */}
+      {/* IDEATION Tag and Title - After 100vh section */}
+      <div ref={ideationRef} className="w-full py-16 text-center">
         <div
-          className={`mt-16 text-center transition-all duration-1500 ease-out ${
-            textVisible
+          className={`transition-all duration-1000 ease-out ${
+            ideationVisible
               ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-8"
+              : "opacity-0 translate-y-4"
           }`}
           style={{
-            maskImage: textVisible
-              ? "linear-gradient(to bottom, black 0%, black 100%)"
-              : "linear-gradient(to bottom, transparent 0%, transparent 50%, black 100%)",
-            WebkitMaskImage: textVisible
-              ? "linear-gradient(to bottom, black 0%, black 100%)"
-              : "linear-gradient(to bottom, transparent 0%, transparent 50%, black 100%)",
+            fontWeight: 500,
+            fontSize: "14px",
+            lineHeight: "135%",
+            letterSpacing: "0%",
+            textAlign: "center",
+            textTransform: "uppercase",
+            transitionDelay: "400ms",
+          }}
+        >
+          <span className="text-[#fff] opacity-30">IDEATION</span>
+        </div>
+        <div
+          className={`mt-4 transition-all duration-1200 w-[80%] m-auto ease-out ${
+            ideationVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6"
+          }`}
+          style={{
+            fontWeight: 600,
+            fontSize: "32px",
+            lineHeight: "120%",
+            letterSpacing: "-3%",
+            textAlign: "center",
             transitionDelay: "800ms",
           }}
         >
-          <p className="text-white text-lg md:text-xl lg:text-2xl font-light leading-relaxed max-w-2xl mx-auto px-4">
-            "A reminder that everything, even time, moves in phases. Yet only
-            the enduring are remembered."
-          </p>
+          <h2 className="text-white">
+            The Mind Behind <br /> Monarch
+          </h2>
+        </div>
+
+        {/* Roman Number SVG */}
+        <div
+          className={`mt-8 flex justify-center transition-all duration-1400 ease-out ${
+            ideationVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6"
+          }`}
+          style={{
+            transitionDelay: "1200ms",
+          }}
+        >
+          <Image
+            src="/assets/products/monarch/Roman Number.svg"
+            alt="Roman Number"
+            width={100}
+            height={100}
+            className="drop-shadow-lg w-full h-auto"
+          />
+        </div>
+
+        {/* Background Image */}
+        <div
+          className={`mt-8 w-full transition-all duration-1600 ease-out ${
+            ideationVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-6"
+          }`}
+          style={{
+            transitionDelay: "1600ms",
+          }}
+        >
+          <Image
+            src="/assets/products/monarch/Background Image.svg"
+            alt="Background Image"
+            width={1200}
+            height={600}
+            className="w-full h-auto"
+          />
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
