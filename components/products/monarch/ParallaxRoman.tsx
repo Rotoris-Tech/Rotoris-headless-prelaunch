@@ -9,22 +9,26 @@ const ParallaxRoman = () => {
   const [ideationVisible, setIdeationVisible] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateScrollY = (scrollContainer?: Element) => {
+      let newScrollY = 0;
+
+      if (scrollContainer) {
+        newScrollY = scrollContainer.scrollTop;
+      } else {
+        newScrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      }
+
+      setScrollY(newScrollY);
+    };
+
+    const handleScroll = (event?: Event) => {
+      const scrollContainer = event?.target as Element;
+      updateScrollY(scrollContainer);
+
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         const containerTop = rect.top;
-        const containerHeight = rect.height;
         const windowHeight = window.innerHeight;
-
-        // Calculate scroll progress for parallax clouds
-        const scrollProgress = Math.max(
-          0,
-          Math.min(
-            1,
-            (windowHeight - containerTop) / (windowHeight + containerHeight)
-          )
-        );
-        setScrollY(scrollProgress);
 
         // Show moons when section enters viewport
         if (containerTop < windowHeight && !sectionVisible) {
@@ -33,10 +37,45 @@ const ParallaxRoman = () => {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Initial check
+    // Find all scrollable containers
+    const scrollableContainers = document.querySelectorAll('[style*="overflow"]');
+    const bodyContainer = document.body;
+    const htmlContainer = document.documentElement;
 
-    return () => window.removeEventListener("scroll", handleScroll);
+    // Add listeners to potential scroll containers
+    window.addEventListener("scroll", handleScroll);
+    document.addEventListener("scroll", handleScroll);
+    bodyContainer.addEventListener("scroll", handleScroll);
+    htmlContainer.addEventListener("scroll", handleScroll);
+
+    // Add to any other scrollable containers
+    scrollableContainers.forEach(container => {
+      container.addEventListener("scroll", handleScroll);
+    });
+
+    // Also listen to any parent containers that might be scrollable
+    if (containerRef.current) {
+      let parent = containerRef.current.parentElement;
+      while (parent && parent !== document.body) {
+        parent.addEventListener("scroll", handleScroll);
+        parent = parent.parentElement;
+      }
+    }
+
+    // Initial update
+    updateScrollY();
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("scroll", handleScroll);
+      bodyContainer.removeEventListener("scroll", handleScroll);
+      htmlContainer.removeEventListener("scroll", handleScroll);
+
+      scrollableContainers.forEach(container => {
+        container.removeEventListener("scroll", handleScroll);
+      });
+    };
   }, [sectionVisible]);
 
   // Separate useEffect for Intersection Observer
@@ -76,20 +115,19 @@ const ParallaxRoman = () => {
         ref={containerRef}
         className="relative w-full min-h-[100vh] overflow-hidden"
       >
-        {/* Floating Clouds with Simple Parallax - Start from original positions, move up at different speeds */}
+        {/* Foreground Parallax Clouds - Starting further down, moving up slowly */}
         <Image
           src="/assets/products/monarch/Cloud.svg"
           alt="cloud-1"
           width={250}
           height={100}
           style={{
-            transform: `translateY(-${scrollY * 20}px) translateX(${
-              Math.sin(scrollY * 3) * 15
-            }px)`,
+            transform: `translateY(${scrollY * -0.3}px)`,
             mixBlendMode: "screen",
-            top: "100px",
+            top: "200px",
+            left: "-10px",
           }}
-          className="absolute left-[-10px] transition-transform duration-100 ease-out"
+          className="absolute"
         />
         <Image
           src="/assets/products/monarch/Cloud (1).svg"
@@ -97,13 +135,12 @@ const ParallaxRoman = () => {
           width={162}
           height={68}
           style={{
-            transform: `translateY(-${scrollY * 60}px) translateX(${
-              Math.sin(scrollY * 2.5) * -20
-            }px)`,
+            transform: `translateY(${scrollY * -0.5}px)`,
             mixBlendMode: "screen",
-            top: "150px",
+            top: "250px",
+            right: "-20px",
           }}
-          className="absolute right-[-20px] transition-transform duration-80 ease-out"
+          className="absolute"
         />
         <Image
           src="/assets/products/monarch/Cloud (2).svg"
@@ -111,13 +148,13 @@ const ParallaxRoman = () => {
           width={210}
           height={100}
           style={{
-            transform: `translateY(-${scrollY * 40}px) translateX(${
-              Math.sin(scrollY * 1.8) * 12
-            }px)`,
+            transform: `translateY(${scrollY * -0.4}px)`,
             mixBlendMode: "screen",
             top: "500px",
+            left: "-10px",
+            zIndex: 0,
           }}
-          className="absolute left-[-10px] transition-transform duration-120 ease-out"
+          className="absolute"
         />
         <Image
           src="/assets/products/monarch/Cloud (3).svg"
@@ -125,17 +162,17 @@ const ParallaxRoman = () => {
           width={400}
           height={229}
           style={{
-            transform: `translateY(-${scrollY * 80}px) translateX(${
-              Math.sin(scrollY * 2.8) * -18
-            }px)`,
+            transform: `translateY(${scrollY * -0.6}px)`,
             mixBlendMode: "screen",
-            top: "500px",
+            top: "600px",
+            right: "-20px",
+            zIndex: 0,
           }}
-          className="absolute right-[-20px] transition-transform duration-100 ease-out"
+          className="absolute"
         />
 
         {/* Sequential Moon Images */}
-        <div style={{ top: "220px" }} className="absolute w-full">
+        <div style={{ top: "220px", zIndex: 1 }} className="absolute w-full">
           <div
             className="flex items-end justify-center"
             style={{ gap: "20px" }}
